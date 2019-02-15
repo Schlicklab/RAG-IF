@@ -10,11 +10,9 @@ import os
 
 targetType = 'IIIb'
 
-
-
-nupackResultDir = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/Swati_Test/BPSEQ/"
+nupackResultDir = sys.argv[1] # S.J. to take command line input
 prefix = "Top"
-comparisonInpf = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/Swati_Test/check-candidates/candidate_result.txt"
+comparisonInpf = sys.argv[2]
 
 # change nupackResultDir and comparisonInpf variables based on the target topology and corresponding folders
 
@@ -46,14 +44,17 @@ for i in range(len(pool)):
      sys.exit()
 
 
-  os.system( "python /Users/yt34/NYU_Drive_Google/Work/RNA-projects/modified-treeGraph/treeGraphs.py "+nupackResultDir+prefix+pool[i]+".bpseq "+ " > "+prefix+pool[i]+".tg_log"    )
+  #os.system( "python /Users/yt34/NYU_Drive_Google/Work/RNA-projects/modified-treeGraph/treeGraphs.py "+nupackResultDir+prefix+pool[i]+".bpseq "+ " > "+prefix+pool[i]+".tg_log"    )
+  os.system( "python /Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/modified-treeGraph/treeGraphs.py "+nupackResultDir+prefix+pool[i]+".bpseq "+ " > "+prefix+pool[i]+".tg_log"    )
 
 
-  os.system( "python /Users/yt34/NYU_Drive_Google/Work/RNA-projects/modified-treeGraph/treeGraphs.py "+nupackResultDir+prefix+pool[i]+".nupack.bpseq "+ " > "+prefix+pool[i]+".nupack.tg_log"    )
+  #os.system( "python /Users/yt34/NYU_Drive_Google/Work/RNA-projects/modified-treeGraph/treeGraphs.py "+nupackResultDir+prefix+pool[i]+".nupack.bpseq "+ " > "+prefix+pool[i]+".nupack.tg_log"    )
+  os.system( "python /Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/modified-treeGraph/treeGraphs.py "+nupackResultDir+prefix+pool[i]+".nupack.bpseq "+ " > "+prefix+pool[i]+".nupack.tg_log"    )
 
   #  python analyzer.py {current_topology}.log {target_topology}.log
   #
-  os.system( "python /Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/analyzer/S1-script/analyzer.py "+prefix+pool[i]+".nupack.tg_log "+ prefix+pool[i]+".tg_log "+" > "+prefix+pool[i]+".summary1" )
+  #os.system( "python /Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/analyzer/S1-script/analyzer.py "+prefix+pool[i]+".nupack.tg_log "+ prefix+pool[i]+".tg_log "+" > "+prefix+pool[i]+".summary1" )
+  os.system( "python /Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/analyzer.py "+prefix+pool[i]+".nupack.tg_log "+ prefix+pool[i]+".tg_log "+" > "+prefix+pool[i]+".summary1" )
 
   os.system("rm -rf "+prefix+pool[i]+".nupack.tg_log "+prefix+pool[i]+".tg_log ")
 
