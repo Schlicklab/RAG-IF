@@ -13,7 +13,7 @@ ex -sc '1i|>This is comment line' -cx ${filename}.fa
 
 
 
-/opt/viennaRNA2.4.8/bin/RNAfold -p -d2 --noLP < ${filename}.fa > ${filename}.rnafold
+/opt/viennaRNA2.3.5/bin/RNAfold -p -d2 --noLP < ${filename}.fa > ${filename}.rnafold
 rm *.ps
 rm *.fa
 

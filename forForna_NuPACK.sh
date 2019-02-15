@@ -26,7 +26,8 @@ rm -rf ${filename}.fa
 rm -rf ${filename}.in
 
 
-python /Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/bp2dotfa/bpseq2dotfa.py $1
+#python /Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/bp2dotfa/bpseq2dotfa.py $1
+python /Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/bpseq2dotfa.py $1
  
 #~/nupack/bin/mfe -material rna
 
@@ -65,7 +66,8 @@ fi
 
 # convert Fasta + Dot-Bracket to bpseq for nupack
 
-python  /Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/dotfa2bp/dotfa2bpseq.py  ${filename}.nupack.fa ${filename}.nupack.dotbracket
+#python  /Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/dotfa2bp/dotfa2bpseq.py  ${filename}.nupack.fa ${filename}.nupack.dotbracket
+python /Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/dotfa2bpseq.py  ${filename}.nupack.fa ${filename}.nupack.dotbracket
  
 
 

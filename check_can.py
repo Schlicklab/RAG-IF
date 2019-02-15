@@ -50,19 +50,19 @@ for i in range(len(data1)):
         if data1[i][0] == data2[j][0]: # same rank
             flag=1 # sequence found
                 
-            if (data1[i][1] == data2[j][1]) or (data1[i][1] == data2[j][2]): # NUPACK equal to either one of the RNAfold
+            #if (data1[i][1] == data2[j][1]) or (data1[i][1] == data2[j][2]): # NUPACK equal to either one of the RNAfold
                 #print "Candidate Type I:",data1[i][0],data1[i][1],data2[j][1],data2[j][2]
                 
-            if (data1[i][1] == data2[j][1] == desiredTop) or (data1[i][1] == data2[j][2] == desiredTop):# NUPACK equal to either one of the RNAfold, but also with desired topology
+            #if (data1[i][1] == data2[j][1] == desiredTop) or (data1[i][1] == data2[j][2] == desiredTop):# NUPACK equal to either one of the RNAfold, but also with desired topology
                 #print "Candidate Type Ib:",data1[i][0],data1[i][1],data2[j][1],data2[j][2]
                     
-            if (data1[i][1] == data2[j][1]) and (data1[i][1] == data2[j][2]): # NUPACK equal to both of the RNAfold
+            #if (data1[i][1] == data2[j][1]) and (data1[i][1] == data2[j][2]): # NUPACK equal to both of the RNAfold
                 #print "Candidate Type II:",data1[i][0],data1[i][1],data2[j][1],data2[j][2]
                     
-            if (data1[i][1] == data2[j][1] == desiredTop) and (desiredTop == data1[i][1] == data2[j][2]): # NUPACK equal to both of the RNAfold, but also with desired topology
+            #if (data1[i][1] == data2[j][1] == desiredTop) and (desiredTop == data1[i][1] == data2[j][2]): # NUPACK equal to both of the RNAfold, but also with desired topology
                 #print "Candidate Type IIb:",data1[i][0],data1[i][1],data2[j][1],data2[j][2]
                     
-            if (data1[i][1] == desiredTop ) and (data2[j][1] != desiredTop) and (data2[j][2] != desiredTop): # NUPACK folds onto the target topology but RNAfold (both mfe and centroid) do not
+            #if (data1[i][1] == desiredTop ) and (data2[j][1] != desiredTop) and (data2[j][2] != desiredTop): # NUPACK folds onto the target topology but RNAfold (both mfe and centroid) do not
                 #print "Candidate Type IIIa:",data1[i][0],data1[i][1],data2[j][1],data2[j][2]
                     
             if (data1[i][1] != desiredTop ) and (data2[j][1] == desiredTop) and (data2[j][2] == desiredTop): # RNAfold (both mfe and centroid) folds onto the target topology but NUPACK does not

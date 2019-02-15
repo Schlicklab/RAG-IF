@@ -1,9 +1,9 @@
 #!/bin/bash
 
-cd BPSEQ 
+cd $1 
 
 for file1 in *.bpseq; do
-  ../forForna_NuPACK.sh  ${file1}
+  /Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/forForna_NuPACK.sh  ${file1}
 done 
 
 

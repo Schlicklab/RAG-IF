@@ -1,5 +1,5 @@
-cd SEQ
+cd $1
 for i in *.seq; do
-  ../forForna_RNAfold.sh    ${i}
+  /Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/forForna_RNAfold.sh    ${i}
 done
 
