@@ -6,7 +6,8 @@
 import os 
 import sys
 
-PathDir="/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/dotfa2bp/"
+#PathDir="/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/dotfa2bp/"
+PathDir="/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/"
 
 
 

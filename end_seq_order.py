@@ -81,7 +81,7 @@ def getSS_RNAfold( ex_seq ):
     f1.write(ex_seq)
     f1.close()
 
-    os.system("/opt/viennaRNA2.4.8/bin/RNAfold -p -d2 --noLP < tmpRNAfold.in > tmpRNAfold.out" )
+    os.system("/opt/viennaRNA2.3.5/bin/RNAfold -p -d2 --noLP < tmpRNAfold.in > tmpRNAfold.out" )
     os.system("rm -rf tmpRNAfold.in rna.ps dot.ps")
 
     # we don't need this fasta file 
@@ -212,8 +212,9 @@ def kick_one( pattern, test_seq, seq_org, ss_current, target_topo ):
 #---------------
 def getTopo_RNAfold( ex_seq ):
 
-    fd2seqDir = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/dotfa2bp/" 
-    TGpath="/Users/yt34/NYU_Drive_Google/Work/RNA-projects/modified-treeGraph/"
+    #fd2seqDir = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/dotfa2bp/" 
+    fd2seqDir = "/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/" 
+    TGpath="/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/modified-treeGraph/"
 
     ss_RNAfold = getSS_RNAfold( ex_seq )
 

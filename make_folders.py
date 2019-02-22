@@ -6,10 +6,10 @@ import os.path
 import sys
 
 
-FatherFolder = "7_4_test"
+FatherFolder = sys.argv[1]
 # this needs to be changed according to the target and the folder - this will be created
 
-inpf = "result-filter.txt"
+inpf = FatherFolder + "/result-filter.txt"
 
 if not os.path.isdir( FatherFolder ):
    os.system("mkdir "+FatherFolder)

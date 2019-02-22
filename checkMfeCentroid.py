@@ -48,7 +48,8 @@ centroidPass = 'n'
 
 if gID1 == gID2:
    #
-   os.system("python /Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/analyzer/S1-script/analyzer.py "+ inpstr +".mfe.tg_log "+inpstr +".tg_log >"+inpstr+".s1_summary1.a")
+   #os.system("python /Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/analyzer/S1-script/analyzer.py "+ inpstr +".mfe.tg_log "+inpstr +".tg_log >"+inpstr+".s1_summary1.a")
+   os.system("python /Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/analyzer.py "+ inpstr +".mfe.tg_log "+inpstr +".tg_log >"+inpstr+".s1_summary1.a")
    #
    if os.path.isfile(inpstr+".s1_summary1.a"):
       for line in open( inpstr+".s1_summary1.a"):
@@ -57,7 +58,8 @@ if gID1 == gID2:
 else:
     if gID1 == gID3:
        #
-       os.system("python /Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/analyzer/S1-script/analyzer.py "+ inpstr+".centroid.tg_log "+ inpstr + ".tg_log >"+ inpstr+".s1_summary1.b")
+       #os.system("python /Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/analyzer/S1-script/analyzer.py "+ inpstr+".centroid.tg_log "+ inpstr + ".tg_log >"+ inpstr+".s1_summary1.b")
+       os.system("python /Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/analyzer.py "+ inpstr+".centroid.tg_log "+ inpstr + ".tg_log >"+ inpstr+".s1_summary1.b")
        #
        if os.path.isfile(inpstr+".s1_summary1.b"):
           for line in open(inpstr+".s1_summary1.b"):

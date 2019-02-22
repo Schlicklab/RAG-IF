@@ -23,7 +23,8 @@ import os
 inpstr = sys.argv[1] #"Top94"
 # # # #
 
-subroutinDir="/Users/yt34/NYU_Drive_Google/Work/RNA-projects/Cases/subroutines/"
+#subroutinDir="/Users/yt34/NYU_Drive_Google/Work/RNA-projects/Cases/subroutines/"
+subroutinDir="/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/"
 
 # added on 2018-09-19
 s3fail_correct_mfe_script = subroutinDir+"correct_mfe.py"
@@ -119,7 +120,8 @@ else:
 
 
 # S4 Pre-mutation analysis - NuPACK vs RNAfold 
-os.system("python "+"/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/analyzer/S1-script/analyzer.py "+ inpstr+".nupack.tg_log " + inpstr+".rnafold.tg_log > "+inpstr+".s1_summary2 " )
+#os.system("python "+"/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/analyzer/S1-script/analyzer.py "+ inpstr+".nupack.tg_log " + inpstr+".rnafold.tg_log > "+inpstr+".s1_summary2 " )
+os.system("python "+"/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/analyzer.py "+ inpstr+".nupack.tg_log " + inpstr+".rnafold.tg_log > "+inpstr+".s1_summary2 " )
 if os.path.isfile(inpstr+".s1_summary2"):
    print "S4 done."
 else:
@@ -127,7 +129,8 @@ else:
    sys.exit()
 
 # S5 Mutation targeting with S2 script -> has been corrected - 08/21/2018   
-os.system("python "+"/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/analyzer/S2-script/s2_script.py "+ inpstr+".s1_summary2 "+ inpstr +".nupack.tg_log "  + inpstr+".rnafold.tg_log > "+inpstr+"-ifmutate.log " )
+#os.system("python "+"/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/analyzer/S2-script/s2_script.py "+ inpstr+".s1_summary2 "+ inpstr +".nupack.tg_log "  + inpstr+".rnafold.tg_log > "+inpstr+"-ifmutate.log " )
+os.system("python "+"/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/s2_script.py "+ inpstr+".s1_summary2 "+ inpstr +".nupack.tg_log "  + inpstr+".rnafold.tg_log > "+inpstr+"-ifmutate.log " )
 if os.path.isfile(inpstr+"-ifmutate.log"):
    print "S5 done."
 else:
@@ -139,7 +142,8 @@ else:
 os.system("tail -n +2 "+inpstr+".rnafold.bpseq > tmp1")
 os.system("mv tmp1 " + inpstr+".rnafold.bpseq")
 
-os.system("python "+"/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/mutationEngine/mutEngine.py "+ inpstr+".rnafold.bpseq "+ inpstr+"-ifmutate.log "+">/dev/null"  )
+#os.system("python "+"/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/mutationEngine/mutEngine.py "+ inpstr+".rnafold.bpseq "+ inpstr+"-ifmutate.log "+">/dev/null"  )
+os.system("python "+"/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/mutEngine.py "+ inpstr+".rnafold.bpseq "+ inpstr+"-ifmutate.log "+">/dev/null"  )
 if os.path.isfile(inpstr+".rnafold.rnaInverseInp"):
    print "S6 done."
 else:

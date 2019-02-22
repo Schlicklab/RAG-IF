@@ -9,9 +9,11 @@ import os
 
 prefix = sys.argv[1] #"Top236"
 
-pathDir1 = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/Swati_Test/BPSEQ/"
-pathDir2 = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/Swati_Test/SEQ/"
+#pathDir1 = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/Swati_Test/BPSEQ/"
+#pathDir2 = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/Swati_Test/SEQ/"
 # change these two paths according to the target and your folder
+pathDir1 = sys.argv[2] + "/BPSEQ/"
+pathDir2 = sys.argv[2] + "/SEQ/"
 
 if os.path.isfile(pathDir1+prefix+".bpseq"):
    os.system("cp "+pathDir1+prefix+".bpseq "+ " .")

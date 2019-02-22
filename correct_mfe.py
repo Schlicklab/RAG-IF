@@ -30,11 +30,16 @@ inpf3 = prefix+".bpseq"
 
 
 
-analyze_path = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/analyzer/S1-script/"
-s2_path = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/analyzer/S2-script/"
-me_path = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/mutationEngine/"
-sub_path = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/Cases/subroutines/" 
-RNAinverseDir="/Users/yt34/NYU_Drive_Google/Work/RNA-projects/GAIF/"
+#analyze_path = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/analyzer/S1-script/"
+#s2_path = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/analyzer/S2-script/"
+#me_path = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/mutationEngine/"
+#sub_path = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/Cases/subroutines/" 
+#RNAinverseDir="/Users/yt34/NYU_Drive_Google/Work/RNA-projects/GAIF/"
+analyze_path = "/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/"
+s2_path = "/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/"
+me_path = "/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/"
+sub_path = "/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/" 
+RNAinverseDir="/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/"
 
 
 def wc(filename):
@@ -75,7 +80,7 @@ def getSS_RNAfold( ex_seq ):
     f1.write(ex_seq)
     f1.close()
 
-    os.system("/opt/viennaRNA2.4.8/bin/RNAfold -p -d2 --noLP < tmpRNAfold.in > tmpRNAfold.out" )
+    os.system("/opt/viennaRNA2.3.5/bin/RNAfold -p -d2 --noLP < tmpRNAfold.in > tmpRNAfold.out" )
     os.system("rm -rf tmpRNAfold.in rna.ps dot.ps")
 
     # we don't need this fasta file
@@ -98,8 +103,9 @@ def getSS_RNAfold( ex_seq ):
 
 def getTopo_RNAfold( ex_seq, flag ):
 
-    fd2seqDir = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/dotfa2bp/"
-    TGpath="/Users/yt34/NYU_Drive_Google/Work/RNA-projects/modified-treeGraph/"
+    #fd2seqDir = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/dotfa2bp/"
+    fd2seqDir = "/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/"
+    TGpath="/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/modified-treeGraph/"
 
     if flag == 1:
        ss_RNAfold = getSS_RNAfold( ex_seq )
@@ -140,8 +146,9 @@ def getTopo_RNAfold( ex_seq, flag ):
 #
 def getTopo_forFiles( ex_seq, flag, prefix ):
 
-    fd2seqDir = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/dotfa2bp/"
-    TGpath="/Users/yt34/NYU_Drive_Google/Work/RNA-projects/modified-treeGraph/"
+    #fd2seqDir = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/dotfa2bp/"
+    fd2seqDir = "/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/"
+    TGpath="/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/modified-treeGraph/"
 
     if flag == 1:
        ss_RNAfold = getSS_RNAfold( ex_seq )
@@ -334,20 +341,3 @@ while ifsufficient == 0:
    getTopo_forFiles( min_mut_seq, 2, prefix ) # nupack
 
    #
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
