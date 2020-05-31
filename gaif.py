@@ -2,13 +2,9 @@
 
 # Genetic Alogorithm Inverse Folding 
 #
-# Y. Tao - 2018-08-13
-#
 # usage: 
-# python gaif.py XXXXX.rnaInverseInp [YYYYY.template]
+# python gaif.py inpf k [tmpf]
 #
-
-# 08/20/2018 - add functionality of using template as the initial guess 
 
 
 import random
@@ -16,16 +12,16 @@ import os
 import os.path
 import sys
 import time
-#import numpy 
-#import multiprocessing as mp
 from functools import partial
 import multiprocessing
+import statistics
 
 
-
+# Chrom contains the points of mutations that can lead to target folding
 class Chrom:
     chrom = []
     fitness = 0.0
+    folding = ""
 
     def __init__(self, ngene):
         self.chrom = ['N']*ngene 
@@ -36,16 +32,19 @@ class Chrom:
         for i in range(ngene):
             self.chrom[i] = random.choice( lib )
 
-#---------------
-
+# This function mutates the seq to residues given in chrom, and calculates the fitness by comparing folding to ss_target.
+# @ seq is our current sequence with points of mutations written as 'N'
+# @ ss_target is in dot format
+# @ Nindex is a list of the mutation positions
+# @ chrom gives the residues for the mutation positions
+# @ k decides the engine of folding to use, we use pknots now for k=1
+#                                           use RNAfold for k=2
 def eachFit(chrom, seq, ss_target, Nindex,k):
-    #
-    #print chrom
+    
     fullseq = list(seq)
     for i in range(len(Nindex)):
         fullseq[ Nindex[i] ] = chrom[i]
     fullseq = ''.join(fullseq)
-    #print fullseq
 
     jobID = str(random.randint(10000,99999))
     jobID = jobID+str(time.time()).split('.')[1]
@@ -54,151 +53,115 @@ def eachFit(chrom, seq, ss_target, Nindex,k):
     jobID = jobID + random.choice(list1)+ str(random.choice(list2))
     jobID = jobID + random.choice(list1)+ str(random.choice(list2))
     jobID = jobID + random.choice(list1)+ str(random.choice(list2))
-
-    if k == 1 : # Run RNAfold
-       f1 = open("tmpRNAfold"+jobID+".in","w")
-       f1.write(fullseq)
-       f1.close()
-
-       os.system("/opt/viennaRNA2.3.5/bin/RNAfold -p -d2 --noLP < tmpRNAfold"+jobID+".in > tmpRNAfold"+jobID+".out 2>/dev/null " )
-       #passMe = os.path.isfile("rna.ps") and os.path.isfile("dot.ps")
-       passMe = os.path.isfile("tmpRNAfold"+jobID+".out")
-       if passMe:
-          passMe = ( os.stat("tmpRNAfold"+jobID+".out").st_size != 0 )
-       os.system("rm -rf tmpRNAfold"+jobID+".in rna.ps dot.ps")
-      
+ 
+    f1 = open("tmpRNAfold"+jobID+".in","w")
+    f1.write(">84 MT246482.1 0 13405 84\n")
+    f1.write(fullseq)
+    f1.close()
        
-       if passMe:
-          with open("tmpRNAfold"+jobID+".out") as f:
-               f.readline()
-               ss_new = f.readline().split()[0]
-          os.system("rm -rf tmpRNAfold"+jobID+".out")
-       else:
-          ss_new = '.'*len(ss_target)
-          os.system("rm -rf tmpRNAfold"+jobID+".out")
+    if k == 1:
+       # -k allow pseudoknots, too slow
+       os.system("pknots -g tmpRNAfold"+jobID+".in tmpRNAfold"+jobID+".ct 2>/dev/null " )
+       #delete the first 4 lines and add "84 MT246482.1 0 13405 84" as the first line for ct file
+       with open("tmpRNAfold"+jobID+".ct", "r+") as f:
+           lines = f.readlines()
+       with open("tmpRNAfold"+jobID+".ct", "w") as f:
+           f.write("84 MT246482.1 0 13405 84\n")
+           for i in range(4, len(lines)):
+               f.write(lines[i])
+       # export DATAPATH=/Users/Catherine/Downloads/RNAstructure/data_tables/"
+       os.system("ct2dot tmpRNAfold"+jobID+".ct 1 tmpRNAfold"+jobID+".out 2>/dev/null" )
+       os.system("rm -rf tmpRNAfold"+jobID+".in tmpRNAfold"+jobID+".ct")
+       
+    elif k == 2:
+       os.system("RNAfold -p -d2 --noLP < tmpRNAfold"+jobID+".in > tmpRNAfold"+jobID+".out 2>/dev/null " )
+       os.system("rm -rf tmpRNAfold"+jobID+".in rna.ps dot.ps")
+       
+    passMe = os.path.isfile("tmpRNAfold"+jobID+".out")
+    if passMe:
+        with open("tmpRNAfold"+jobID+".out") as f:
+            lines = f.readlines()
+            ss_new = lines[2]
+        os.system("rm -rf tmpRNAfold"+jobID+".out")
+    else:
+        print("no .out\n")
+        ss_new = '.'*len(ss_target)
 
-          #print ss_new     
-          #print ss_target
+    # get fitness 
+    fitness = 0
+    for x,y in zip( ss_new, ss_target ):
+        if x == y:
+            fitness = fitness + 1
+    return fitness, ss_new
 
-       # get fitness 
-       fitness = 0
-       for x,y in zip( ss_new, ss_target ):
-           if x == y:
-              fitness = fitness + 1
-    #print fitness
-
-    return fitness 
-
-
-
+# Calculates the fitness for mutation chrom idx in pop
+# @ pop is a list of chroms for mutations
 def fit4par(idx, pop, seq, ss, Nindex, k):
-    pop[idx].fitness = eachFit(pop[idx].chrom, seq, ss, Nindex, k)
-    #print pop[idx].fitness
-
+    pop[idx].fitness, pop[idx].folding = eachFit(pop[idx].chrom, seq, ss, Nindex, k)
     return pop[idx] 
 
-def calcFit(pop,seq,ss,Nindex,k,nproc):
-    # k decides which engine to use 
-
- if nproc < 1:
-    nproc = 1
-    
- if nproc > 1:
-    whole = range(len(pop)) 
-    pool = multiprocessing.Pool(nproc)
+# Calculates the fitness of a population of mutation chroms
+# @ nproc is number of CPU processors
+def calcFit(pop,seq,ss,Nindex,k,nproc):   
     partial_fit4par = partial(fit4par, pop=pop, seq=seq, ss=ss, Nindex=Nindex, k=k)
-    result = pool.map( partial_fit4par, whole )
-    pool.close()
-    pool.join()
-
-    #print len(result), type(result[0]),result[0].fitness
-    #print result[0].chrom
-    #sys.exit()
-
-    ################################################################
-    #
-    # Serial version
- if nproc == 1:   
-    for ic in range(len(pop)):
-        pop[ic].fitness = eachFit(pop[ic].chrom, seq, ss, Nindex, k)
-    return pop
-    ################################################################
-    # fit4par(pop[c], seq, ss, Nindex, k)
     
- return result #return pop
+    if nproc <= 1:
+        for idx in range(len(pop)):
+            pop[idx] = partial_fit4par(idx)
+        return pop    
+    else:
+        whole = range(len(pop))
+        pool = multiprocessing.Pool(nproc)
+        result = pool.map( partial_fit4par, whole )
+        pool.close()
+        pool.join()
+        return result
 
-
-def findBest( pop ):
-    
-    best = ['i', 0]
-    for ic in range(len(pop)):
-        #print len(pop[ic]),len(pop)
-        #sys.exit()
-        if best[1] < pop[ic].fitness:
-           best = [ic, pop[ic].fitness] # modified 
-    return best
-
-
+# Calculates the mean fitness of a pop
 def meanFit( pop ):
-    N = len(pop)
-    sumFit = 0
-    for c in pop:
-        sumFit = sumFit + c.fitness # modified
-
-    mean = sumFit/(N+0.0)
+    Fitness = [pop[i].fitness for i in range(len(pop))]
+    mean = statistics.mean(Fitness)
     return mean
 
+# Get order of the pop fitness, from highest fitness to lowest
+def getOrder( pop ):
+    Fitness = [pop[i].fitness for i in range(len(pop))]
+    dic = dict(zip(range(len(pop)), Fitness))
+    sortPos = sorted(dic, key=dic.get, reverse=True)
+    return sortPos
 
+# Finds the position of the mutation chrom with highest fitness
+def findBest( pop ):   
+    order = getOrder(pop)
+    best = [order[0], pop[order[0]].fitness]
+    return best
 
-
-
+# Replace 50 sequences with the lowest fitness with 50 with the highest fitness
 def select( pop, nreplace ):
-   
-    N = len(pop)
-    if nreplace >= 0.3*N:
-       nreplace = int(0.15*N)
-
-    # find the worst ones 
-    worstList = []
-    for i in range(0, nreplace):
-        worst = 9999
-        worstL = ''
-        for ic in range(len(pop)): # modified
-            if pop[ic].fitness < worst:
-               if ic not in worstList:
-                  worst = pop[ic].fitness
-                  worstL = ic
-        worstList.append( worstL )
-    #
-    #print worstList
-
-    # find the best ones
-    bestList = []
-    for i in range(0, nreplace):
-        best = 0
-        bestL = ''
-        for ic in range(len(pop)): # modified
-            #print pop[ic].fitness
-            if pop[ic].fitness > best:
-               if ic not in bestList:
-                  best = pop[ic].fitness
-                  bestL = ic
-        bestList.append( bestL )
-    #
-    #print bestList
-    #print worstList
-    #sys.exit()
+    
+    order = getOrder(pop)
+    bestPos = order[0:nreplace]
+    worstPos = order[len(pop)-nreplace:len(pop)]
 
     # replace worst chromosomes with best chromosomes
-    for i in range(len(bestList)):
-        #print pop[ worstList[i] ].chrom
-        pop[ worstList[i] ].chrom = pop[ bestList[i] ].chrom[:]
-        pop[ worstList[i] ].fitness = pop[ bestList[i] ].fitness # fitness should also be updated                    
-        #print pop[ worstList[i] ].chrom
+    for i in range(nreplace):
+        pop[ worstPos[i] ].chrom = pop[ bestPos[i] ].chrom[:]
+        pop[ worstPos[i] ].fitness = pop[ bestPos[i] ].fitness
+                   
     return pop
 
+# Waive the top nwaive chroms in the pop, get list of their positions
+def getWaive( pop, nwaive ):
+    order = getOrder(pop)
+    waiveList = order[0:nwaive]
+    return waiveList
 
-def xover1( pop, nresi, acr, nx, waiveList):
+
+# For each pair of sequences, probability of acr of swapping identities of nx random mutable residues
+# @ nresi is number of mutable residues
+# @ acr is probability of cross-over
+# @ nx is number of cross-over residues
+def xover1( pop, nresi, acr, nx, waiveList ):
 
     if nx > 0.5*nresi:
        nx = int(0.1*nresi)
@@ -210,83 +173,41 @@ def xover1( pop, nresi, acr, nx, waiveList):
             if i != j:
               if acr > random.random():  
                 for k in range(nx):
-                   #
+                   
                    acrNode = random.randrange(0,nresi)
                    if (i not in waiveList) and (j not in waiveList): 
                       tmp = pop[i].chrom[acrNode]
                       pop[i].chrom[acrNode] = pop[j].chrom[acrNode]
                       pop[j].chrom[acrNode] = tmp
+                      
                    if (i  in waiveList) and (j not in waiveList): 
-                      tmp = pop[j].chrom[acrNode]
                       pop[j].chrom[acrNode] = pop[i].chrom[acrNode]
-                      #pop[j].chrom[acrNode] = tmp
+                      
                    if (i not in waiveList) and (j in waiveList): 
-                      tmp = pop[i].chrom[acrNode]
-                      pop[i].chrom[acrNode] = pop[j].chrom[acrNode]
-                      #pop[j].chrom[acrNode] = tmp
-                   
-
+                      pop[i].chrom[acrNode] = pop[j].chrom[acrNode]                   
     return pop
 
-
-def getOrder( pop ):
-
-    fitList = []
-    cList = []
-
-    for ic in range(len(pop)): # modified 
-        cList.append( ic )
-        fitList.append( pop[ic].fitness )
-
-    X = cList
-    Y = fitList
- 
-    Z = [x for _,x in sorted(zip(Y,X),reverse=True)]
-
-    return Z
-
-
-def getWaive( pop, nwaive):
-
-    orderC = getOrder( pop )
-    waiveList = []
-    for i in range(nwaive):
-        waiveList.append(  orderC[i]  )
-
-    return waiveList
-
-
+# Generate a mutation residue other than r
 def mutIt( r ):
-    #
-    lib = ['A','U','C','G']
-    
+    lib = ['A','U','C','G']    
     lib.remove( r )
-
     s = random.choice( lib )
     return s 
 
 
-
-
-def mutation1( pop, nresi, orderC, mut_good, mut_ave, mut_bad, waiveList):
-    # H   - M   - L 
-    # 20% - 50% - 30%
-    # 1   - 2   - 1 
-    highList = []
-    midList = []
-    lowList = []
+# Mutate mutable residues
+def mutation1( pop, nresi, order, mut_good, mut_ave, mut_bad, waiveList):
+    # Fitness level:            - H(20%)    - M(50%)   - L(30%) 
+    # Mutate residue number:    - 1         - 2        - 1
+    # Mutate probability:       - mut_good  - mut_ave  - mut_bad 
+    
     N = len(pop)
-
-    for i in range(N):
-        if (i+1) <= 0.2*N:
-           highList.append( orderC[i] )
-        if (i+1) <= 0.7*N and (i+1) > 0.2*N:
-           midList.append( orderC[i] )
-        if (i+1) > 0.7*N:
-           lowList.append( orderC[i] )
-    #print highList
-    #print midList
-    #print lowList
+    highN = int(0.2*N)
+    midN = int(0.5*N)
+    
+    highList = order[0:highN]
+    midList = order[highN:highN+midN]
+    lowList = order[highN+midN:N]
 
     nloop = 1
     for ic in range(len(pop)):
@@ -306,18 +227,19 @@ def mutation1( pop, nresi, orderC, mut_good, mut_ave, mut_bad, waiveList):
            for loop in range(nloop):
                mutNode = random.randrange(0, nresi)
                pop[ic].chrom[mutNode] = mutIt( pop[ic].chrom[mutNode] ) 
-
-    #
     return pop
 
+
+# Nomination of winning chroms, after being recorded in the heavenList, the chrom has probability of heaven_rate getting 1 residue mutated
+# @ if a chromosome has a distance to target less than 'nstepheaven', then pick it out
 def heaven( pop, fullfit, nstepheaven, heaven_rate, heavenList ):
-    # modify:
+
     #   give 50% chance to use a lower standard (by 2)  
     #        40%                                 by 4
     #        20%                                 by 6
     #        15%                                 by 8
     # should give more chances to use lower standards (by 4, 6 and 8) 
-    #
+    
     for ic in range(len(pop)):
         diff = fullfit - pop[ic].fitness
 
@@ -352,87 +274,93 @@ def heaven( pop, fullfit, nstepheaven, heaven_rate, heavenList ):
               else:
                  not_good = True 
 
-
-        if not_good:     #diff > nstepheaven:
+        if not_good:
            continue
         else:
            # must enter heavenList 
            str1 = ''.join( pop[ic].chrom )
-           if [ str1, pop[ic].fitness ] not in heavenList:
-              heavenList.append( [ str1, pop[ic].fitness ] )
+           if [ str1, pop[ic].fitness, ic ] not in heavenList:
+              heavenList.append( [ str1, pop[ic].fitness, ic ] )
            # but not necessarily to be mutated    
            if heaven_rate > random.random(): # mutation
               # mutate this chromosome once  
               mutNode = random.randrange(0, len(pop[ic].chrom))
               pop[ic].chrom[mutNode] = mutIt( pop[ic].chrom[mutNode] )
-#              mutNode = random.randrange(0, len(pop[ic].chrom))
-#              pop[ic].chrom[mutNode] = mutIt( pop[ic].chrom[mutNode] )
-
-
-
-    #heavenList = [list(t) for t in set(tuple(element) for element in heavenList)] # remove duplicates 
 
     return pop, heavenList
 
 
+# Mutate the waiveList chroms if no change in heavenList length for a while
 def stuckMutation( pop, waiveList ):
-
-    #
-    #print "stuckMutation triggered..."
-
     nprotect = 2
     iprotect = 0
+    
     for ic in waiveList:
-
         iprotect = iprotect + 1  # protect 'nprotect' seq. out of the waiveList from mutation 
         if iprotect <= nprotect:
            continue           
-        #
+        
         for loop in range(30): 
             mutNode = random.randrange(0, len(pop[ic].chrom) )
             pop[ic].chrom[mutNode] = mutIt( pop[ic].chrom[mutNode] ) 
-
     return pop
 
 
+# Get mutation template from seq_tem
+# seq_tmp gives suggestions for points of mutation, other points should be the same
 def chkSeq(seq, seq_tmp, Nindex):
     
-    # length 
+    # check seq length 
     if len(seq) != len(seq_tmp):
-       print 'Template sequence has inconsistent length.'
+       print('Template sequence has inconsistent length.')
        sys.exit()
 
     # check info
     for i in range(len(seq)):
         if i not in Nindex:
            if seq[i] != seq_tmp[i]:
-              print 'Template sequence has inconsistent info.'
+              print('Template sequence has inconsistent info.')
               sys.exit()
     
     # get initial guess in correct format
     chrom = []
     for i in range(len(Nindex)):
-        #
         chrom.append( seq_tmp[Nindex[i]] )
-
-    #print chrom
 
     return chrom
 
 
 
-def main(inpf,tmpf,nseq,nreplace,nwaive,niter,nproc,acr_ave,nx,mut_good,mut_ave,mut_bad,nstepheaven,heaven_rate,nprintheaven,nsurvivors,nstill_1,nstill_0):
+# @ inpf, first line be the target dot format,
+#         second line be the actual AUCG sequence we have now and needed to be mutated, points of mutations are written as 'N'
+# @ tmpf, template sequence that suggests points of mutations
+# @ nseq is population size
+# @ nreplace is number of worst chroms being replaced by best chroms
+# @ nwaive is waiveList size
+# @ niter is number of GA iterations
+# @ k is engine, 1 for pknots, 2 for RNAfold
+# @ nproc is number of CPU processors
+# @ acr_ave is probability of cross-over
+# @ nx is number of cross-over residues
+# @ mut_good, mut_ave, mut_bad: mutation probabilities for different fitness level
+# @ nstepheave, if a chromosome has a distance to target less than 'nstepheaven', then pick it out
+# @ heaven_rate, after being nominated in the heavenList, the chrom has probability of heaven_rate getting 1 residue mutated
+# @ nprintheaven, print out heaven results every 'nprintheaven' steps if any
+# @ nsurvivors is number of nominations
+# @ nstill_0, it has been nstill_0 steps that heavenList has no sequence, triggers population re-initialization
+# @ nstill_1, it has been nstill_1 steps that heavenList has no change in length, triggers waiveList mutation or population re-initialization
+def main(inpf,tmpf,nseq,nreplace,nwaive,niter,k,nproc,acr_ave,nx,mut_good,mut_ave,mut_bad,nstepheaven,heaven_rate,nprintheaven,nsurvivors,nstill_0,nstill_1):
 
    # set up timer 
    timer_a = time.time()
-   total_time = 30*60 # 30 min is the upper limit of execution 
+   total_time = 15*60 # 30 min is the upper limit of execution 
 
    # Read in info. of input file
    with open( inpf ) as f:
         ss = f.readline().strip()
         seq = f.readline().strip().upper()
 
-   print "Length of Seq.", len(seq)
+   print("Length of Seq.", len(seq))
 
    Nindex = [ ] # collect the index of unknown residues 
    for r in range(len(seq)):
@@ -440,173 +368,125 @@ def main(inpf,tmpf,nseq,nreplace,nwaive,niter,nproc,acr_ave,nx,mut_good,mut_ave,
           Nindex.append( r )
 
    # Construct chromosomes
-   population = [] #{} modified on 2018-08-14
+   population = []
    for i in range(nseq):
-       population.append( Chrom(len(Nindex)) ) # modified
-       population[i].assign() # modified 
-
+       population.append( Chrom(len(Nindex)) )
+       population[i].assign()
 
    # Use template [optional] 
    if tmpf != "": # use template 
       with open(tmpf) as f:
            seq_tmp = f.readline().strip()
-      #print seq_tmp
-
-      # verify the consistency of 'seq_tmp' and 'seq', 
-      # and also set up the chromosomes by using the initial guess 
       for i in range(nwaive): # make the first 'nwaive' chromosomes to take the initial guess
          population[i].chrom = chkSeq(seq, seq_tmp, Nindex)
-      #sys.exit()
 
-
-   # Calculate initial fitness
-         #print population[101].chrom
-   population = calcFit( population, seq, ss, Nindex, 1, nproc )
-         #print population[101].chrom
- 
-   # Find current best chromosome
-   bestFitList = []
-   bestChrom = findBest( population )
-   bestFitList.append( bestChrom[1] )
-   #print bestFitList
-
-   # Calculate average fitness
-   #print len(population)
-   meanFitList = []
-   meanFitList.append( meanFit( population ) )
-
-   # get the waive list - {is this truly waive list?} 
-   waiveList = getWaive( population, nwaive)  
-
-
-   # PRINT 
-   #print "Mean:", int(meanFit( population )), "Max:",bestChrom[1]
-   sys.stdout.write("Mean: "+str(int(meanFit( population )))+" "+"Max: "+str(bestChrom[1])+'\r' )
-   sys.stdout.flush()
-   print ""
-
-   # prepare the heaven list
+   # Get initial fitness, waiveList, order
+   population = calcFit( population, seq, ss, Nindex, k, nproc )     
+   waiveList = getWaive( population, nwaive)
+   orderC = getOrder( population )
    heavenList = []
 
 
    # Start Iteration
    t = 0
-   nochange = 0 
-   nboost = 200 # was 0
-                                 #for t in range(niter): # might be better to change into while loop 
+   nochange = 0 # no change in heavenList length
+   nboost = 200 # a boost in iteration number t
+
    while t <= niter:
 
        # check timer 
        timer_b = time.time()
        if timer_b-timer_a > total_time:
-          print "\nTime is up."
+          print("\nTime is up.")
           sys.exit()
 
        # if not sufficient...
        if t == niter and len(heavenList) < nsurvivors:
           t = 0
-          nstepheaven = nstepheaven + 2 # increase the Hamming distance to the target secondary structure 
+          nstepheaven = nstepheaven + 2 # lower the standard for nomination
 
-       # step size - incremental  
        t = t + 1
-
-       # 1. selection
-       population = select( population, nreplace) # improved - 08/16/2018 
-
-       # 2. cross-over
-       population = xover1( population, len(Nindex), acr_ave, nx, waiveList)
        
-       # inject one template sequence if possible - 09/06/2018 
+       # 1. Mutation
+       population = mutation1( population, len(Nindex), orderC, mut_good, mut_ave, mut_bad, waiveList)
+       
+       # 2. Cross-over
+       population = xover1( population, len(Nindex), acr_ave, nx, waiveList)
+
+       # 3. Selection
+       population = select( population, nreplace)
+        
        if tmpf != "":
           population[0].chrom = chkSeq(seq, seq_tmp, Nindex) 
-          pass 
 
-       ## update the fitness 
-       population = calcFit( population, seq, ss, Nindex, 1, nproc )
-
-       ## update waiveList ?? 
-       waiveList = getWaive( population, nwaive)
-
-       ## get the ordering of fitness 
+       ## update the fitness, waiveList, order
+       population = calcFit( population, seq, ss, Nindex, k, nproc )
+       waiveList = getWaive( population, nwaive) 
        orderC = getOrder( population )
 
-       # 3. mutation
-       population = mutation1( population, len(Nindex), orderC, mut_good, mut_ave, mut_bad, waiveList)
-
-       # 4. calculate fitness
-       population = calcFit( population, seq, ss, Nindex, 1, nproc )
-
-       ## update waiveList ?? 
-       waiveList = getWaive( population, nwaive)
-
-       # print out current iteration result
-       bestChrom = findBest( population )
-       bestFitList.append( bestChrom[1] ) 
-       meanFitList.append( meanFit( population ) )
-       #print "Mean:", int(meanFit( population )), "Max:",bestChrom[1], str(t+1)+"/"+str(niter)
-       sys.stdout.write("Mean: "+str(int(meanFit( population )))+" "+"Max: "+str(bestChrom[1])+" "+str(t+1)+"/"+str(niter)+'\r' )
-       sys.stdout.flush()
-
-       # 5. lift eligible chromosomes into heaven - modified on 09/06/2018
+       # 4. Nomination
        population, heavenList = heaven( population, len(seq), nstepheaven, heaven_rate, heavenList )
 
 
-       # mutate chromosomes in waiveList if the heavenList does not change for a while  (stuck somewhere)
+       # mutate chromosomes in waiveList if the heavenList does not change for a while (stuck somewhere)
+       # or re-initialize the population with a boost in iteration number t
        if t == 1: # first iteration 
           old_heavenlen = len(heavenList)
-                        #old_heavenList = heavenList[:]
 
        if t > 1:
-          if old_heavenlen != len(heavenList):   #old_heavenList != heavenList:
-             old_heavenlen = len(heavenList) # update the heavenList length 
-                                
-             #old_heavenList = heavenList[:]
-             nochange = 0 # go back to 0 in time, it means 'heavenList' has been changed  
-          else: # 
-
+          if old_heavenlen != len(heavenList):
+             old_heavenlen = len(heavenList) 
+             nochange = 0 # go back to 0 in time, it means 'heavenList' has been changed
+             
+          else: # no change in length
+              
              if old_heavenlen == 0: # nothing in the 'heavenList'
                 nochange = nochange + 1 # set up a counter  
                 if nochange >= nstill_0: # was set to 150 steps 
-                   # to do mutation
-                                     #population = stuckMutation( population, waiveList )
                    # re-initialize the whole population (99%)
-                   for tmpl in range(1,nseq): #range(nseq):
-                       if 0.01 < random.random(): # eliminate 99%  -- ??? 
-                                                  # '>' changed in to '<' 
+                   for tmpl in range(1,nseq):
+                       if 0.01 < random.random(): 
                           population[tmpl].assign()
                    nochange = 0
                    t = nboost
                    nboost = nboost + 100 # was 100
-
-                   #
-                   print "\npopulation re-initialized", 't =',t, 'nboost =', nboost 
-                   # 
+                   print("\n0 nomination. Population re-initialized", 't =',t, 'nboost =', nboost)
 
 
              if old_heavenlen > 0: # there are some seq. in the 'heavenList'
-                #
                 nochange = nochange + 1
                 # if nochange exceeds a limit, then trigger mutation, also set nochange back to 0
                 if nochange >= nstill_1: # was set to 100 steps 
                    # mutation
                    if len(heavenList) > 10:
                       population = stuckMutation( population, waiveList )
-                      print "\nstuckMutation activated."
-                   else:
-                      
-                      print "\npopulation re-initialized" 
-                      for tmpl in range(1,nseq): # modified
+                      print("\nstuckMutation activated.")
+                   else:                     
+                      for tmpl in range(1,nseq):
                           if 0.01 < random.random():  
                              population[tmpl].assign()
-                      #t = 0 -> leave for next 'nstepheaven' value      
+                      t = nboost
+                      nboost = nboost + 100 # was 100
+                      print("\npopulation re-initialized", 't =',t, 'nboost =', nboost)
                    nochange = 0
                                              
 
-       ## print out heaven results
+       # print out heaven results
        if len(heavenList) != 0:
           if (t+1)%nprintheaven == 0: 
-             f1 = open('heaven.txt','w')
+             f1 = open('3_5_2heaven.txt','w')
+             
              fullseq = list(seq)
+             iseq = ''.join(fullseq)
+             f1.write( "Inquiry sequence:\n" + iseq +"\n")
+             
+             tfold = ''.join(ss)
+             f1.write( "Target folding:\n" + tfold +"\n")
+             
+             if tmpf != "":
+                 tseq = ''.join(seq_tmp)
+                 f1.write( "Template sequence:\n" + tseq +"\n")
+             
              for ih in range(len(heavenList)):
                  newseq = []
                  for j in range(len(fullseq)):
@@ -615,83 +495,50 @@ def main(inpf,tmpf,nseq,nreplace,nwaive,niter,nproc,acr_ave,nx,mut_good,mut_ave,
                      else:
                         newseq.append( heavenList[ih][0][Nindex.index(j)] )
                  newseq = ''.join(newseq)
-                 f1.write(newseq)
-                 #for h in heavenList[ih][0]:
-                 #    f1.write( str(h)+" " )
+                 fold = population[heavenList[ih][2]].folding
+                 f1.write(">\n" + newseq)
                  f1.write(" ")
-                 f1.write( str(heavenList[ih][1])+"/"+str(len(fullseq)) +"\n" )
+                 f1.write( str(heavenList[ih][1]) + "/" + str(len(fullseq)) +"\n" )
+                 f1.write( fold +"\n" )
              f1.close()
              pass
              # stop running the program
              if len(heavenList) >= nsurvivors:
-                print "\nSufficient chromosomes in heaven:",len(heavenList)
+                print("\nSufficient chromosomes in heaven:",len(heavenList))
                 sys.exit()
-
-       #
-
-
-
-
-       # 5. lift eligible chromosomes into heaven
-       #population, heavenList = heaven( population, len(seq), nstepheaven, heaven_rate, heavenList )
-
-
-
-
-
-
-
-   # Print Final Result -> This is actually not called and used.
-   f1 = open('result.txt','w')
-   fullseq = list(seq)
-   for ic in range(len(population)):
-       newseq = []
-       for j in range(len(fullseq)):
-           if j not in Nindex:
-              newseq.append( fullseq[j] )
-           else:
-              newseq.append( population[ic].chrom[Nindex.index(j)] )  
-       newseq = ''.join(newseq)
-       f1.write(newseq)
-       f1.write(" ")
-       f1.write( str(population[ic].fitness)+"/"+str(len(fullseq)) +"\n" )
-   f1.close()
 
    return 0
 
-   
 
-
-
-
+# command line: python gaif.py inpf k [tmpf]
 if __name__== "__main__":
 
-   if len(sys.argv) == 1:
-      print "incorrect excution..."
+   if len(sys.argv) < 3:
+      print("incorrect excution...")
       sys.exit()
    
    inpf = sys.argv[1]
    if not os.path.isfile(inpf):
-      print "input file not exist..."
+      print("input file not exist...")
       sys.exit()
-
+   
+   k = int(sys.argv[2])
+   if k != 1 and k != 2:
+       print("engine selection invalid, 1 for pknots, 2 for RNAfold...")
+       sys.exit()
+   
    tmpf = ""
-   if len(sys.argv) == 3:
-      tmpf = sys.argv[2] 
+   if len(sys.argv) == 4:
+      tmpf = sys.argv[3]
       if not os.path.isfile(tmpf):
-         print "template file not exist..."
+         print("template file not exist...")
          sys.exit()
 
 
-
    # set up
-   #inpf = "7_4-Top243.rnafold.rnaInverseInp"
    nseq = 500 # number of starting candidates (population size)
    nreplace = 50 # kill the last 'nreplace', replace them with the first 'nreplace'
-   nwaive = 10 # waive any changes for 'nwaive' best chromosomes 
-   
-   #tmpf = "Top243.seq" 
-
+   nwaive = 10 # waive any changes for 'nwaive' best chromosomes  
 
    nstepheaven = 0 # if a chromosome has a distance to target less than 'nstepheaven', then pick it out
    heaven_rate = 0.75 # probability to be mutated after being lifted to heaven
@@ -699,11 +546,11 @@ if __name__== "__main__":
    nstill_1 = 100 # if the heavenList is not changed for up to 'nstill' iterations, mutate chromosomes in waiveList
    nstill_0 = 150 
 
-   nsurvivors = 800 # 500 # when the heaven has 'nsurvivors' chromosomes, stop the program 
+   nsurvivors = 200 # 500 # when the heaven has 'nsurvivors' chromosomes, stop the program 
 
    niter = 500 # number of iteration
 
-   nproc = 5 # number of CPU processors 
+   nproc = 3 # number of CPU processors 
 
    mut_good = 0.30 # probability of mutation
    mut_bad =  0.75
@@ -728,12 +575,12 @@ if __name__== "__main__":
                if "nstepheaven" in line:
                   val = line.strip().split("=")[1]
                   nstepheaven = int(val) # if the sequence yield is too low, then set this value to a larger number 
-                  print ".gaif_conf found"
-                  print "nstepheaven set to", nstepheaven
+                  print(".gaif_conf found")
+                  print("nstepheaven set to", nstepheaven)
    
 
 
-   main(inpf,tmpf,nseq,nreplace,nwaive,niter,nproc,acr_ave,nx,mut_good,mut_ave,mut_bad,nstepheaven,heaven_rate,nprintheaven,nsurvivors,nstill_1,nstill_0)
+   main(inpf,tmpf,nseq,nreplace,nwaive,niter,k,nproc,acr_ave,nx,mut_good,mut_ave,mut_bad,nstepheaven,heaven_rate,nprintheaven,nsurvivors,nstill_0,nstill_1)
 
 
 #
