@@ -69,13 +69,25 @@ def eachFit(chrom, seq, ss_target, Nindex,k):
            f.write("84 MT246482.1 0 13405 84\n")
            for i in range(4, len(lines)):
                f.write(lines[i])
-       # export DATAPATH=/Users/Catherine/Downloads/RNAstructure/data_tables/"
+       # export DATAPATH=/Users/qiyaozhu/Downloads/RNAstructure/data_tables/"
        os.system("ct2dot tmpRNAfold"+jobID+".ct 1 tmpRNAfold"+jobID+".out 2>/dev/null" )
        os.system("rm -rf tmpRNAfold"+jobID+".in tmpRNAfold"+jobID+".ct")
        
     elif k == 2:
        os.system("RNAfold -p -d2 --noLP < tmpRNAfold"+jobID+".in > tmpRNAfold"+jobID+".out 2>/dev/null " )
        os.system("rm -rf tmpRNAfold"+jobID+".in rna.ps dot.ps")
+       
+    elif k == 3:
+       os.system("mfe -pseudo -material rna tmpRNAfold"+jobID+" 2>/dev/null ")
+       with open("tmpRNAfold"+jobID+".mfe", 'r') as f:
+           fold = f.readlines()[16]
+       with open("tmpRNAfold"+jobID+".mfe", 'w') as f:
+           f.write(">84 MT246482.1 0 13405 84\n")
+           f.write(fullseq + "\n")
+           f.write(fold)
+       os.system("dot2ct tmpRNAfold"+jobID+".mfe tmpRNAfold"+jobID+".ct")
+       os.system("ct2dot tmpRNAfold"+jobID+".ct 1 tmpRNAfold"+jobID+".out")
+       os.system("rm -rf tmpRNAfold"+jobID+".in tmpRNAfold"+jobID+".ct tmpRNAfold"+jobID+".mfe")
        
     passMe = os.path.isfile("tmpRNAfold"+jobID+".out")
     if passMe:
@@ -92,6 +104,9 @@ def eachFit(chrom, seq, ss_target, Nindex,k):
     for x,y in zip( ss_new, ss_target ):
         if x == y:
             fitness = fitness + 1
+    
+    print(fitness)
+    print(ss_new)
     return fitness, ss_new
 
 # Calculates the fitness for mutation chrom idx in pop
@@ -147,6 +162,7 @@ def select( pop, nreplace ):
     for i in range(nreplace):
         pop[ worstPos[i] ].chrom = pop[ bestPos[i] ].chrom[:]
         pop[ worstPos[i] ].fitness = pop[ bestPos[i] ].fitness
+        pop[ worstPos[i] ].folding = pop[ bestPos[i] ].folding
                    
     return pop
 
@@ -279,8 +295,8 @@ def heaven( pop, fullfit, nstepheaven, heaven_rate, heavenList ):
         else:
            # must enter heavenList 
            str1 = ''.join( pop[ic].chrom )
-           if [ str1, pop[ic].fitness, ic ] not in heavenList:
-              heavenList.append( [ str1, pop[ic].fitness, ic ] )
+           if [ str1, pop[ic].fitness, pop[ic].folding ] not in heavenList:
+              heavenList.append( [ str1, pop[ic].fitness, pop[ic].folding ] )
            # but not necessarily to be mutated    
            if heaven_rate > random.random(): # mutation
               # mutate this chromosome once  
@@ -349,11 +365,11 @@ def chkSeq(seq, seq_tmp, Nindex):
 # @ nsurvivors is number of nominations
 # @ nstill_0, it has been nstill_0 steps that heavenList has no sequence, triggers population re-initialization
 # @ nstill_1, it has been nstill_1 steps that heavenList has no change in length, triggers waiveList mutation or population re-initialization
-def main(inpf,tmpf,nseq,nreplace,nwaive,niter,k,nproc,acr_ave,nx,mut_good,mut_ave,mut_bad,nstepheaven,heaven_rate,nprintheaven,nsurvivors,nstill_0,nstill_1):
+def main(inpf,tmpf,nseq,nreplace,nwaive,niter,k,nproc,acr_ave,nx,mut_good,mut_ave,mut_bad,nstepheaven,heaven_rate,nprintheaven,nsurvivors,nstill_0,nstill_1,design):
 
    # set up timer 
    timer_a = time.time()
-   total_time = 15*60 # 30 min is the upper limit of execution 
+   total_time = 4*60*60 # 30 min is the upper limit of execution 
 
    # Read in info. of input file
    with open( inpf ) as f:
@@ -376,9 +392,11 @@ def main(inpf,tmpf,nseq,nreplace,nwaive,niter,k,nproc,acr_ave,nx,mut_good,mut_av
    # Use template [optional] 
    if tmpf != "": # use template 
       with open(tmpf) as f:
-           seq_tmp = f.readline().strip()
+         seq_tmp = f.readline().strip()
       for i in range(nwaive): # make the first 'nwaive' chromosomes to take the initial guess
-         population[i].chrom = chkSeq(seq, seq_tmp, Nindex)
+         chrom_tmp = chkSeq(seq, seq_tmp, Nindex)
+         chrom_fitness, chrom_folding = eachFit(chrom_tmp, seq, ss, Nindex,k)
+         population[i].chrom = chrom_tmp
 
    # Get initial fitness, waiveList, order
    population = calcFit( population, seq, ss, Nindex, k, nproc )     
@@ -412,15 +430,16 @@ def main(inpf,tmpf,nseq,nreplace,nwaive,niter,k,nproc,acr_ave,nx,mut_good,mut_av
        
        # 2. Cross-over
        population = xover1( population, len(Nindex), acr_ave, nx, waiveList)
+       population = calcFit( population, seq, ss, Nindex, k, nproc )
 
        # 3. Selection
        population = select( population, nreplace)
         
        if tmpf != "":
-          population[0].chrom = chkSeq(seq, seq_tmp, Nindex) 
+          population[0].chrom = chrom_tmp
+          population[0].fitness = chrom_fitness
+          population[0].folding = chrom_folding
 
-       ## update the fitness, waiveList, order
-       population = calcFit( population, seq, ss, Nindex, k, nproc )
        waiveList = getWaive( population, nwaive) 
        orderC = getOrder( population )
 
@@ -474,7 +493,7 @@ def main(inpf,tmpf,nseq,nreplace,nwaive,niter,k,nproc,acr_ave,nx,mut_good,mut_av
        # print out heaven results
        if len(heavenList) != 0:
           if (t+1)%nprintheaven == 0: 
-             f1 = open('3_5_2heaven.txt','w')
+             f1 = open(design+'heaven.txt','w')
              
              fullseq = list(seq)
              iseq = ''.join(fullseq)
@@ -495,11 +514,10 @@ def main(inpf,tmpf,nseq,nreplace,nwaive,niter,k,nproc,acr_ave,nx,mut_good,mut_av
                      else:
                         newseq.append( heavenList[ih][0][Nindex.index(j)] )
                  newseq = ''.join(newseq)
-                 fold = population[heavenList[ih][2]].folding
                  f1.write(">\n" + newseq)
                  f1.write(" ")
                  f1.write( str(heavenList[ih][1]) + "/" + str(len(fullseq)) +"\n" )
-                 f1.write( fold +"\n" )
+                 f1.write( heavenList[ih][2] +"\n" )
              f1.close()
              pass
              # stop running the program
@@ -523,8 +541,8 @@ if __name__== "__main__":
       sys.exit()
    
    k = int(sys.argv[2])
-   if k != 1 and k != 2:
-       print("engine selection invalid, 1 for pknots, 2 for RNAfold...")
+   if k != 1 and k != 2 and k != 3:
+       print("engine selection invalid, 1 for PKNOTS, 2 for RNAfold, 3 for NUPACK...")
        sys.exit()
    
    tmpf = ""
@@ -534,23 +552,24 @@ if __name__== "__main__":
          print("template file not exist...")
          sys.exit()
 
+   design = inpf.split("i")[0]
 
    # set up
-   nseq = 500 # number of starting candidates (population size)
-   nreplace = 50 # kill the last 'nreplace', replace them with the first 'nreplace'
-   nwaive = 10 # waive any changes for 'nwaive' best chromosomes  
+   nseq = 100 # number of starting candidates (population size)
+   nreplace = 10 # kill the last 'nreplace', replace them with the first 'nreplace'
+   nwaive = 2 # waive any changes for 'nwaive' best chromosomes  
 
-   nstepheaven = 0 # if a chromosome has a distance to target less than 'nstepheaven', then pick it out
+   nstepheaven = 6 # if a chromosome has a distance to target less than 'nstepheaven', then pick it out
    heaven_rate = 0.75 # probability to be mutated after being lifted to heaven
-   nprintheaven = 5 # print out heaven results every 'nprintheaven' steps if any
+   nprintheaven = 1 # print out heaven results every 'nprintheaven' steps if any
    nstill_1 = 100 # if the heavenList is not changed for up to 'nstill' iterations, mutate chromosomes in waiveList
    nstill_0 = 150 
 
-   nsurvivors = 200 # 500 # when the heaven has 'nsurvivors' chromosomes, stop the program 
+   nsurvivors = 100 # 500 # when the heaven has 'nsurvivors' chromosomes, stop the program 
 
-   niter = 500 # number of iteration
+   niter = 100 # number of iteration
 
-   nproc = 3 # number of CPU processors 
+   nproc = 4 # number of CPU processors 
 
    mut_good = 0.30 # probability of mutation
    mut_bad =  0.75
@@ -580,7 +599,7 @@ if __name__== "__main__":
    
 
 
-   main(inpf,tmpf,nseq,nreplace,nwaive,niter,k,nproc,acr_ave,nx,mut_good,mut_ave,mut_bad,nstepheaven,heaven_rate,nprintheaven,nsurvivors,nstill_0,nstill_1)
+   main(inpf,tmpf,nseq,nreplace,nwaive,niter,k,nproc,acr_ave,nx,mut_good,mut_ave,mut_bad,nstepheaven,heaven_rate,nprintheaven,nsurvivors,nstill_0,nstill_1,design)
 
 
 #
