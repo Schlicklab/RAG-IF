@@ -9,9 +9,7 @@ from ClassesFunctions import *
 
 
 # S.J. 07/09/2018 - changes to use the functions defined in ClassesFunctions file to avoid redundancy
-graphID = []
-DualGraphs = []
-vertexOrder = [] # 07/11/2018 - S.J. added to keep track of vertexOrder
+vertexOrder = []
 
 class Base:
     index = None  #nucleotide Index
@@ -518,6 +516,9 @@ def correctHNumbers(RNA):
 
 #def calcEigen(RNA,arg):
 def calcEigen(RNA): # S.J. 07/05/2018 - removing the last argument as that is not needed
+    DualGraphs = []
+    graphID = []
+    
     if len(RNA.Helices)==2:
         print ("1_1") 
     elif len(RNA.Helices)>10:
@@ -538,6 +539,7 @@ def calcEigen(RNA): # S.J. 07/05/2018 - removing the last argument as that is no
         # printEigenValues(eigen)
         id = "NA"
         for g in DualGraphs: # looking for a match in the DualGraphs read earlier
+            # print(g.adjMatrix)
             id = g.match(eigen,RNA.adjMatrix,vertexOrder)
             if id != "NA": # match found, print ID
                 # print ("Graph ID: %s"%(id))
@@ -575,6 +577,7 @@ def main():
     #if not adjMatTrue:
     #        RNA.printHelices()
     #        RNA.printEdges() # S.J. 02/11/2018
+    vertexOrder = []
     for i in range(0,len(RNA.adjMatrix)): # S.J. 07/11/2018 - to keep track of vertexOrder
         vertexOrder.append(0)
 
