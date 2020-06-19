@@ -44,61 +44,52 @@
 import os
 import sys
 from itertools import chain, combinations
-
-# -----------------
-def getSS_RNAfold( ex_seq ):
-    
-    f1 = open("tmpRNAfold.in",'w')
-    f1.write(ex_seq)
-    f1.close()
-
-    os.system("/opt/viennaRNA2.3.5/bin/RNAfold -p -d2 --noLP < tmpRNAfold.in > tmpRNAfold.out" )
-    os.system("rm -rf tmpRNAfold.in rna.ps dot.ps")
-
-    # we don't need this fasta file 
-    #f1 = open("tmpRNAfold-mfe.fa","w")
-    #f1.write(">test\n")
-    #f1.write(ex_seq)
-    #f1.close()
-
-    # we only take the mfe structure 
-    counter = 0
-    with open("tmpRNAfold.out") as pointer:
-         for line in pointer:
-             counter = counter + 1
-             if counter == 2:
-                tmpRNA_mfe_ss = line.split()[0]
-    os.system("rm -rf tmpRNAfold.out")
-
-    return tmpRNA_mfe_ss
+import numpy
+from ClassesFunctions import *
+from dualGraphs import *
 
 
 # ------------------- S.J. 03/19/2019 - function to get the NUPACK topology
 def getTopo_Nupack(ex_seq):
 
-    f1 = open("tmpNupack.fa","w")
-    f1.write(">test\n")
+    f1 = open("tmpNupack.in","w")
     f1.write(ex_seq)
     f1.close()
-                    
-    target = getSS(ex_seq)
-    f1 = open("tmpNupack.dotbracket","w")
-    f1.write(target)
-    f1.close()
 
-    os.system("python /Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/dotfa2bpseq.py tmpNupack.fa tmpNupack.dotbracket"+">/dev/null")
-    os.system("tail -n +2 tmpNupack.bpseq > tmp1")
-    os.system("mv tmp1 tmpNupack.bpseq")
-    os.system("python /Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/modified-treeGraph/treeGraphs.py tmpNupack.bpseq > tmpNupack.tg_log")
-
-    nupack_topo=""
-    with open("tmpNupack.tg_log") as pointer:
-        for line in pointer:
-            if "Graph ID" in line:
-                nupack_topo = line.split()[-1].strip()
-
-    os.system("rm -rf tmpNupack.*")
-    return nupack_topo
+    os.system("mfe -pseudo -material rna tmpNupack")       
+    with open("tmpNupack.mfe", 'r') as f:
+        for l in f.readlines():
+            if l[0] != '.' and l[0] != '(' and l[0] != ')' and l[0] != '{' and l[0] != '}':
+                continue
+            else:
+                fold = l                  
+    with open("tmpNupack.mfe", 'w') as f:
+        f.write(">77 MT246482.1 0 13412\n")
+        f.write(ex_seq + "\n")
+        f.write(fold)
+    # export DATAPATH=/Users/qiyaozhu/Downloads/RNAstructure/data_tables/
+    os.system("dot2ct tmpNupack.mfe tmpNupack.ct")
+    
+    RNA = getCTInfo("tmpNupack.ct")
+    os.system("rm -rf tmpNupack.in tmpNupack.ct tmpNupack.mfe")
+    
+    countHelices(RNA) 
+    changeHelices(RNA)
+    RNA.makeMatrices()
+    connectHelices(RNA)
+    for i in range(0,len(RNA.adjMatrix)): # S.J. 07/11/2018 - to keep track of vertexOrder
+        vertexOrder.append(0)
+        
+    success, graph = calcEigen(RNA)
+    correctHNumbers(RNA)
+    if len(RNA.adjMatrix)==1 or len(RNA.adjMatrix)>9:
+        print ("No matching graph exists because vertex number is either 1 or greater than 10.")
+        return None
+    elif success == 0: # no graph ID was assigned as eigen values not in the library S.J. 11/09/2017
+        print ("No matching graph exists (even if the vertex number is between 2 and 9).")
+        return None
+    else:
+        return graph
 
 
 # ----------------- S.J. 03/20/2019
@@ -128,23 +119,24 @@ def getSS(ex_seq): # based on NUPACK
        f1.write(ex_seq)
        f1.close()
 
-       os.system("/opt/nupack3.2.2/bin/mfe -material rna tmpNupack")
-       os.system("rm tmpNupack.in")
-
-       target = ""
-       with open("tmpNupack.mfe") as pointer:
-            for line in pointer:
-                if "((" in line:
-                   target = line
-                   break
-                if ".." in line:
-                   target = line
-                   break
-                if "))" in line:
-                   target = line
-                   break
-                
-       os.system("rm -rf tmpNupack.mfe")
+       os.system("mfe -pseudo -material rna tmpNupack")       
+       with open("tmpNupack.mfe", 'r') as f:
+           for l in f.readlines():
+               if l[0] != '.' and l[0] != '(' and l[0] != ')' and l[0] != '{' and l[0] != '}':
+                   continue
+               else:
+                   fold = l                  
+       with open("tmpNupack.mfe", 'w') as f:
+           f.write(">77 MT246482.1 0 13412\n")
+           f.write(ex_seq + "\n")
+           f.write(fold)
+       # export DATAPATH=/Users/qiyaozhu/Downloads/RNAstructure/data_tables/
+       os.system("dot2ct tmpNupack.mfe tmpNupack.ct")
+       os.system("ct2dot tmpNupack.ct 1 tmpNupack.out")
+       with open("tmpNupack.out", 'r') as f:
+            target = f.readlines()[2]
+       os.system("rm -rf tmpNupack.in tmpNupack.ct tmpNupack.mfe tmpNupack.out")
+       
        return target
 
 
@@ -152,9 +144,10 @@ def getSS(ex_seq): # based on NUPACK
 def inputDotBracket(array): # find pairs from dot-bracket notations 
 
     bracketPositions = []
+    bracket2Positions = []
     results = []
     for i, item in enumerate(array):
-        if i == 0 and item == ')':
+        if i == 0 and (item == ')' or item == '>'):
             pass
             #print("Non sense ! Exit")
             break
@@ -166,6 +159,13 @@ def inputDotBracket(array): # find pairs from dot-bracket notations
                 openingPosition = bracketPositions.pop()
                 results.append([openingPosition+1,i+1 ]  )
                 #print(openingPosition+1, '-->', i+1)
+                
+        elif item == '<':
+            bracket2Positions.append(i)
+        elif item =='>':
+            if len(bracket2Positions) > 0:
+                openingPosition = bracket2Positions.pop()
+                results.append([openingPosition+1,i+1 ]  )
         else:
             pass
                 #print('ERROR: Not a bracket. Word is: %s.' % item)
@@ -201,7 +201,7 @@ def all_subsets(ss): # find all subsets except the null set
 # to add topology check[getTopo_RNAfold] - 2018/09/12    
 def kick_one( pattern, test_seq, seq_org, ss_current, target_topo ): 
 
-    print "Kicking..."
+    print("Kicking...")
 
     istop = 0
     to_kick = []
@@ -212,7 +212,7 @@ def kick_one( pattern, test_seq, seq_org, ss_current, target_topo ):
         new_seq = get_seq( test_seq, res_num, seq_org )
         #SJ commented new_ss = getSS( new_seq )
         new_ss = getTopo_Nupack( new_seq )
-        new_topo = getTopo_RNAfold( new_seq )
+        new_topo = getTopo_Pknots( new_seq )
 
         #SJ commented if new_ss == ss_current and new_topo == target_topo:# modified
         if new_ss == target_topo and new_topo == target_topo:
@@ -231,46 +231,44 @@ def kick_one( pattern, test_seq, seq_org, ss_current, target_topo ):
 
 
 #---------------
-def getTopo_RNAfold( ex_seq ):
+def getTopo_Pknots( ex_seq ):
 
-    #fd2seqDir = "/Users/yt34/NYU_Drive_Google/Work/RNA-projects/myOwnScripts/dotfa2bp/" 
-    fd2seqDir = "/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/" 
-    TGpath="/Users/sj78/Documents/labwork/MutationsForDesign/RAG-IF_Code/modified-treeGraph/"
-
-    ss_RNAfold = getSS_RNAfold( ex_seq )
-
-    # prepare fasta and dotbracket files 
-    f1 = open("tmpRNAfold-fasta-1.fa",'w')
-    f1.write(">test1\n")
-    f1.write(ex_seq)
-    f1.close()
-
-    f1 = open("tmpRNAfold-fasta-1.dotbracket",'w')
-    f1.write(ss_RNAfold)
-    f1.close()
-
-    # get bpseq file 
-    os.system('rm -rf tmpRNAfold-fasta-1.bpseq')
-    os.system("python "+fd2seqDir+"dotfa2bpseq.py tmpRNAfold-fasta-1.fa tmpRNAfold-fasta-1.dotbracket"+">/dev/null ")
-    os.system("rm -rf tmpRNAfold-fasta-1.fa tmpRNAfold-fasta-1.dotbracket")
-
-    # run treeGraph
-    rnafold_mfe_top = ""
-    os.system("tail -n +2 tmpRNAfold-fasta-1.bpseq > tmp1 ")
-    os.system("mv tmp1 tmpRNAfold-fasta-1.bpseq")
-    os.system("python "+TGpath+"treeGraphs.py tmpRNAfold-fasta-1.bpseq > tmpRNAfold-fasta-1.tg_log")
-    with open("tmpRNAfold-fasta-1.tg_log") as pointer:
-         for line in pointer:
-             if "Graph ID" in line:
-                 rnafold_mfe_top = line.split()[-1].strip()
-
-    os.system("rm -rf tmpRNAfold-fasta-1.bpseq  tmpRNAfold-fasta-1.tg_log ")
-    #print "current topology is:", rnafold_mfe_top
-    return rnafold_mfe_top
+    with open("tmpPknots.in","w") as f:
+        f.write(">77 MT246482.1 0 13412\n")
+        f.write(ex_seq)
+    
+    os.system("pknots -k -g tmpPknots.in tmpPknots.ct 2>/dev/null")
+    with open("tmpPknots.ct", "r+") as f:
+        lines = f.readlines()
+    with open("tmpPknots.ct", "w") as f:
+        f.write("77 MT246482.1 0 13412 77\n")
+        for i in range(4, len(lines)):
+            f.write(lines[i])
+    
+    RNA = getCTInfo("tmpPknots.ct")
+    os.system("rm -rf tmpPknots.in tmpPknots.ct")
+    
+    countHelices(RNA) 
+    changeHelices(RNA)
+    RNA.makeMatrices()
+    connectHelices(RNA)
+    for i in range(0,len(RNA.adjMatrix)): # S.J. 07/11/2018 - to keep track of vertexOrder
+        vertexOrder.append(0)
+        
+    success, graph = calcEigen(RNA)
+    correctHNumbers(RNA)
+    if len(RNA.adjMatrix)==1 or len(RNA.adjMatrix)>9:
+        print ("No matching graph exists because vertex number is either 1 or greater than 10.")
+        return None
+    elif success == 0: # no graph ID was assigned as eigen values not in the library S.J. 11/09/2017
+        print ("No matching graph exists (even if the vertex number is between 2 and 9).")
+        return None
+    else:
+        return graph
 
 # -------------------------
 # we need to add topology check for RNAfold secondary structure - 2018/09/12
-def pat_analyzer( pattern, ss_current, ss_org, seq_sur, seq_org, target_topo ):
+def pat_analyzer( pattern, ss_current, ss_org, seq_sur, seq_org, target_topo, resultfile ):
 
     pairs_current = inputDotBracket( ss_current ) # find pairs from dot-brackets
     pairs_org     = inputDotBracket( ss_org )
@@ -280,7 +278,12 @@ def pat_analyzer( pattern, ss_current, ss_org, seq_sur, seq_org, target_topo ):
 
     useful_i = []
     
-    print pattern, "a"
+    print(pattern, "before")
+    with open(resultfile, 'a+') as f:
+        f.write('[ ')
+        for k in pattern:
+            f.write(k + ' ')
+        f.write('] before\n')
     #for s in range(0,len(seq_org)):
     #    if seq_org[s] != seq_sur[s]:
     #        print s+1,seq_org[s],"-",seq_sur[s] # this should be exactly the same as the min pattern being printed above
@@ -306,7 +309,7 @@ def pat_analyzer( pattern, ss_current, ss_org, seq_sur, seq_org, target_topo ):
                pair_num_current = pairs_current[j][1]
             if pairs_current[j][1] == res_num:
                pair_num_current = pairs_current[j][0]
-        print res_num, pair_num_org, pair_num_current
+        print(res_num, pair_num_org, pair_num_current)
 
         info_1.append( [res_num, pair_num_org, pair_num_current] )
 
@@ -338,7 +341,7 @@ def pat_analyzer( pattern, ss_current, ss_org, seq_sur, seq_org, target_topo ):
               # SJ commented - test_ss = getSS( test_seq ) # test the secondary structure afterwards
               test_ss = getTopo_Nupack(test_seq) # S.J. 03/19/2018 - NUPACK topology
               
-              test_topo = getTopo_RNAfold( test_seq ) # get the RNAfold topology
+              test_topo = getTopo_Pknots( test_seq ) # get the RNAfold topology
 
               # SJ commented if test_ss == ss_current and test_topo == target_topo:
               if test_ss == target_topo and test_topo == target_topo:
@@ -364,27 +367,27 @@ def pat_analyzer( pattern, ss_current, ss_org, seq_sur, seq_org, target_topo ):
 
     # double check the secondary structure of 'new_seq_sur' 
     
-    print new_seq_sur
+    print(new_seq_sur)
     for s in range(0,len(seq_org)):
         if seq_org[s] != new_seq_sur[s]:
-            print s+1,seq_org[s],"-",new_seq_sur[s] # this should be exactly the same as the min pattern being printed next
+            print(s+1,seq_org[s],"-",new_seq_sur[s]) # this should be exactly the same as the min pattern being printed next
     
     # SJ commented check_ss = getSS( new_seq_sur )
     check_ss = getTopo_Nupack( new_seq_sur )
     # and topology...
-    check_topo = getTopo_RNAfold( new_seq_sur )
-    print check_ss, " ", check_topo
+    check_topo = getTopo_Pknots( new_seq_sur )
+    print(check_ss, " ", check_topo)
 
     #SJ commented if check_ss == ss_current and check_topo == target_topo:
     if check_ss == target_topo and check_topo == target_topo:
-        print "remove ",str(len(pattern)-len(min_pattern)), "point mutations"
-        print min_pattern #, "b"
+        print("remove",str(len(pattern)-len(min_pattern)), "point mutations")
+        print(min_pattern) #, "b"
         pattern_2 = min_pattern
         #print ""
     else:
-        print "try to remove ",str(len(pattern)-len(min_pattern)), "point mutations"
-        print min_pattern
-        print "failed"
+        print("try to remove ",str(len(pattern)-len(min_pattern)), "point mutations")
+        print(min_pattern)
+        print("failed")
         
         # remedy solution -> add the smallest subset of 'deleted' into min_pattern  
         deleted = list( set(pattern) - set(min_pattern) )
@@ -398,10 +401,10 @@ def pat_analyzer( pattern, ss_current, ss_org, seq_sur, seq_org, target_topo ):
                 test_seq = get_seq( test_seq, res_num, seq_sur )
              # SJ commented test_ss = getSS( test_seq )
             test_ss = getTopo_Nupack(test_seq)
-            test_topo = getTopo_RNAfold( test_seq )
+            test_topo = getTopo_Pknots( test_seq )
             # SJ commented if test_ss == ss_current and test_topo == target_topo:
             if test_ss == target_topo and test_topo == target_topo:
-               print test_min_pattern #, "b"
+               print(test_min_pattern) #, "b"
                #pattern_2 = test_min_pattern # wait a minute...
                break # the for loop of 'i'
     
@@ -416,7 +419,7 @@ def pat_analyzer( pattern, ss_current, ss_org, seq_sur, seq_org, target_topo ):
             # 'test_min_pattern' referenced before assignment 
             test_min_pattern, istop, test_seq = kick_one( test_min_pattern, test_seq, seq_org, ss_current, target_topo )
 
-        print test_min_pattern #, 'b'
+        print(test_min_pattern) #, 'b'
         pattern_2 = test_min_pattern
 
 
@@ -435,7 +438,7 @@ def pat_analyzer( pattern, ss_current, ss_org, seq_sur, seq_org, target_topo ):
                first_m = info_1[j][0]
                third_m = info_1[j][2]
                if first_n == third_m and first_m == third_n:
-                  print "found pair!"
+                  print("found pair!")
                   pairs_int.append( [first_n, first_m] )
 
     num_list = []
@@ -448,7 +451,7 @@ def pat_analyzer( pattern, ss_current, ss_org, seq_sur, seq_org, target_topo ):
         b = pairs_int[i][1]
  
         if a in num_list and b in num_list:
-             print "pairs found in pattern_2"
+             print("pairs found in pattern_2")
              
              # try to remove these two mutations and test the secondary structure 
              test_seq2 = (seq_org+".")[:-1]
@@ -461,7 +464,7 @@ def pat_analyzer( pattern, ss_current, ss_org, seq_sur, seq_org, target_topo ):
              test_ss2 = getTopo_Nupack( test_seq2 )
 
              # get topology 
-             test_topo2 = getTopo_RNAfold( test_seq2 )
+             test_topo2 = getTopo_Pknots( test_seq2 )
 
              # SJ commented - if test_ss2 == ss_current and test_topo2 == target_topo:
              if test_ss2 == target_topo and test_topo2 == target_topo:
@@ -474,9 +477,17 @@ def pat_analyzer( pattern, ss_current, ss_org, seq_sur, seq_org, target_topo ):
                     pattern_2.remove( k )
                 #print pattern_2, 'b'
              # update pattern_2
-    print pattern_2, 'b'
+    print(pattern_2, 'b')
+    
+    with open(resultfile, 'a+') as f:
+        f.write("remove " + str(len(pattern)-len(pattern_2)) + " point mutations\n")
+        f.write('[ ')
+        for k in pattern_2:
+            f.write(k + ' ')
+        f.write('] after\n')
 
     return pattern_2
+
 
 
 ###########
@@ -484,73 +495,57 @@ def pat_analyzer( pattern, ss_current, ss_org, seq_sur, seq_org, target_topo ):
 ###########
 
 if len(sys.argv) != 2:
-    print "Please double check input command line."
-    print "usage: python [this_script.py] [target_topo]"
+    print("Please double check input command line.")
+    print("usage: python [this_script.py] [Sequences.txt]")
+    sys.exit()
+ 
+inpf = sys.argv[1]
+    
+if not os.path.isfile(inpf):
+    print("input sequences file not exist...")
     sys.exit()
 
-target_topo = sys.argv[1]
+resultfile = inpf.split('S')[0] + 'min_mut_analysis'
+target_topo = inpf.split('_')[0] + '_' + inpf.split('_')[1]
 
-for file in os.listdir("."):
-    if file.endswith(".seq"):
-        inpf1 = file
-
-for file in os.listdir("."):
-    if file.endswith(".survivors"):
-        inpf2 = file
-
-# read in original seq.
-seq_orig = ""
-with open(inpf1) as f:
-     seq_org = f.readline().strip()
-ss_org = getSS(seq_org)
-
-# order ".survivors" first
+with open('COV_PK_noSlippery.out', 'r') as f:
+    lines = f.readlines()
+    seq_org = lines[0].split('\n')[0]
+    ss_org = lines[1].split('\n')[0]
+    
+# order "Sequences.txt" first
 seq_sur = []
+ss_sur = [] # folds by NUPACK
 dif_sur = []
 
-with open(inpf2) as f: # read in sequences in ".survivors" and calculate the number of different residues  
-     for line in f:
-         if len(line) > 2:
-            flag = line.split()[-1] 
-            if flag == "C":
-               continue
-         
-            temp_seq = line.split()[0].strip()
+with open(inpf, 'r') as f: # read in sequences in ".survivors" and calculate the number of different residues  
+    lines = f.readlines()
+    for l in range(len(lines)):
+        if lines[l][0] == '>':
+            temp_seq = lines[l+1].split('\n')[0]
             count = 0
             temp_pattern = []
             seq_sur.append(temp_seq)
             
-            for x, y in zip( seq_org, line.split()[0].strip() ):
+            temp_ss = lines[l+2].split(' ')[0]
+            ss_sur.append(temp_ss)
+            
+            for x, y in zip( seq_org, temp_seq ):
                 if x != y:
                     count = count + 1
-
             dif_sur.append( count )
-#print dif_sur
+            
+        else:
+            continue
 
-ord_seq_sur = [x for _,x in sorted(zip(dif_sur,seq_sur))]
-ord_dif_sur = sorted( dif_sur ) # number of mutations 
-
-#print ord_seq_sur
-#print sorted(dif_sur)
-
-#for i in range(len(ord_seq_sur)):
-    #print ord_seq_sur[i], ord_dif_sur[i]
-    #pass
-
-# print out mutation pattern
-#print "Print mutation patterns:"
-#for i in range(len(ord_seq_sur)):
-#    print ord_pat_sur[i]
-  #if ord_dif_sur[i] <= max_mut: # comment out 2018-09-06
-  #pattern = []
-  #seq_sur = ord_seq_sur[i]
-  #for j in range(len(seq_org)):
-  #      if seq_org[j] != seq_sur[j]:
-  #         pattern.append( str(j+1)+"-"+seq_sur[j] )
-
-#print " "
-
-#print len(ord_seq_sur)
+order = list(numpy.argsort(dif_sur))
+ord_seq_sur = []
+ord_ss_sur = []
+ord_dif_sur = []
+for i in order:
+    ord_seq_sur.append(seq_sur[i])
+    ord_ss_sur.append(ss_sur[i])
+    ord_dif_sur.append(dif_sur[i])
 
 
 # S.J. 03/20/2019 - new code to check patterns and then take unique sequences - based on old code
@@ -559,6 +554,7 @@ for i in range(len(ord_seq_sur)):
 
     cur_pat = []
     cur_seq = ord_seq_sur[i]
+    cur_ss = ord_ss_sur[i]
     for j in range(len(seq_org)):
         if seq_org[j] != cur_seq[j]:
             cur_pat.append( str(j+1)+"-"+cur_seq[j] ) # calculating the pattern
@@ -566,127 +562,19 @@ for i in range(len(ord_seq_sur)):
     flag = check_inclusion(cur_pat) # checking if this pattern includes any of the other unique patterns already selected
     if flag: # this includes one of the already selected unique patterns, so this is redundant, so skip this sequence
         continue
-
-    print "\nOptimizing Sequence " + str(i+1)
-    cur_ss = getSS(cur_seq)
+    
+    with open(resultfile, 'a+') as f:
+        f.write("\nOptimizing Sequence " + str(i+1) + '\n')        
+    print("\nOptimizing Sequence " + str(i+1))
     # come here if this sequence needs to be analyzed
     opt_pat = []
-    opt_pat  =  pat_analyzer(cur_pat, cur_ss, ss_org, cur_seq, seq_org, target_topo)
+    opt_pat = pat_analyzer(cur_pat, cur_ss, ss_org, cur_seq, seq_org, target_topo, resultfile)
     opt_pat = sorted(opt_pat)
     unique_pattern.append(opt_pat) # add it to the unique patterns, it will be different from others already selected, otherwise this sequnce would have been skipped anyways
 
-print "unique patterns: --b"
+print("unique patterns: --b")
 for k in unique_pattern:
-    print k, 'b'
-
-
-# count the unique secondary structure (NuPACK secondary structures)
-#if 1==1: # switch
-
-#   ss_list = []
-#   for i in range(len(ord_seq_sur)):
-     #if ord_dif_sur[i] <= max_mut: # comment out 2018-09-06
-#       ex_seq = ord_seq_sur[i]
-
-#       f1 = open("tmpNupack.in","w")
-#       f1.write(ex_seq)
-#       f1.close()
-
-#       os.system("/opt/nupack3.2.2/bin/mfe -material rna tmpNupack")
-#       os.system("rm tmpNupack.in")
-
-#       target = ""
-#       with open("tmpNupack.mfe") as pointer:
-#            for line in pointer:
-#                if "((" in line:
-#                   target = line
-#                   break
-#                if ".." in line:
-#                   target = line
-#                   break
-#                if "))" in line:
-#                   target = line
-#                   break
-                
-#       os.system("rm -rf tmpNupack.mfe")
-       #print target
-#       if target not in ss_list:
-#          ss_list.append( target )
-
-   # check each s.s. type in ss_list, put sequences of the same type together
-#   skipme = []
-#   for i in range(len(ss_list)):
-#       print "secondary structure: -- b"
-#       ex_ss = ss_list[i]
-#       print ex_ss.strip()
-#       seq_type = [] # collect seq.
-#       num_list = [] # collect number of mutations
-#       j_list = [] # collect the index of seq. that belong to a specific secondary structure
-#       for j in range(len(ord_seq_sur)):
-         #if ord_dif_sur[j] <= max_mut:  # comment out 2018-09-06  
-#           if j in skipme:
-#              continue # in order to save time
-#           this_ss = getSS( ord_seq_sur[j] )
-#           if this_ss == ex_ss:
-#             seq_type.append( ord_seq_sur[j] )
-#              skipme.append( j )
-#              num_list.append( ord_dif_sur[j] )
-#              j_list.append( j )
-#           pass
-#       print len(seq_type), num_list              #, j_list
-
-       # do analysis
-#       unique_pattern = []
-#       for k in range(len(j_list)):
-
-           # get mutation pattern 
-#           pattern = []
-#           seq_sur = ord_seq_sur[  j_list[k]  ]
-#           for l in range(len(seq_sur)):
-#               if seq_sur[l] != seq_org[l]: # compare current seq. and original seq.
-#                  pattern.append( str(l+1)+"-"+seq_sur[l] )
-           #print pattern
-
-           # analyze this pattern - remove useless patterns  
-#           pattern_2  =  pat_analyzer( pattern, ex_ss, ss_org, seq_sur, seq_org, target_topo )
-#           pattern_2 = sorted( pattern_2 )
-#           if pattern_2 not in unique_pattern:
-#              unique_pattern.append( pattern_2 )
-
-       # remove 'inclusion' in unique patterns
-       # - added on 2018-09-12
-#       toRemove = [ ]
-#       if len(unique_pattern) > 1:
-#          for j in range(len(unique_pattern)):
-#              for k in range(len(unique_pattern)):
-#                  if k > j:
-#                     p1 = unique_pattern[j]
-#                     p2 = unique_pattern[k]
-#                     ifall = 1 # assume inclusion first
-#                     for l in p1:
-#                        if l not in p2:
-#                           ifall = 0
-#                     if ifall == 1:
-#                        if p2 not in toRemove:
-#                           toRemove.append( p2 )
-                     
-#                     ifall_b = 1 # added 2018-09-13
-#                     for l in p2:
-#                         if l not in p1:
-#                            ifall_b = 0
-#                     if ifall_b == 1:
-#                        if p1 not in toRemove:
-#                           toRemove.append( p1 )
-                        
-#          if len(toRemove) != 0:
-#             for j in range(len(toRemove)): # problematic!!!
-#                 unique_pattern.remove( toRemove[j] )
-
-#       print "unique patterns: --b"
-#       for k in unique_pattern:
-#           print k, 'b'
-
-
+    print(k, 'b')
 
 
 
