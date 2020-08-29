@@ -1,0 +1,3 @@
+Candidate Type IIIb: 12 6_2 7_4 7_4
+Candidate Type IIIb: 107 8_7 7_4 7_4
+Candidate Type IIIb: 123 7_3 7_4 7_4
