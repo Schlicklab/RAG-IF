@@ -38,12 +38,12 @@ The next steps provide details on how to run RAG-IF for one sequence. If you wan
 
 8) cd to the sequence folder you want to run RAG-IF on (ExampleRun/7/Top107).
 
-9) Run "python <path to RAG-IF Code>/collect_input.py Top107 <path to ExampleRun>". This will copy all necessary files needed to run the RAG-IF GA to this directory.
+9) Run "python path to RAG-IF Code/collect_input.py Top107 <path to ExampleRun>". This will copy all necessary files needed to run the RAG-IF GA to this directory.
 Top107 is the name and rank of the sequence you want to run GA on. This will need to change according to your sequence.
 
-10) Run "python <path to RAG-IF code>/master-gaif.py Top107". This will execute the GA. Top107 is the name and rank of the sequence you want to run GA on. 
+10) Run "python path to RAG-IF code/master-gaif.py Top107". This will execute the GA. Top107 is the name and rank of the sequence you want to run GA on. 
 This will need to change according to your sequence. This will create a directory Top107.survivors, which are the candidate sequences returned by GA that 
 have the correct topology with both RNAfold and NUPACK. 
 
-11) Run "python <path to RAG-IF code>/end_seq_order.py Top107.survivors > min_mut.analysis". This will run mutation optimization and give minimal mutations written
+11) Run "python path to RAG-IF code/end_seq_order.py Top107.survivors > min_mut.analysis". This will run mutation optimization and give minimal mutations written
 at the bottom of the file min_mut.analysis.

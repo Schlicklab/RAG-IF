@@ -1,0 +1,232 @@
+
+Optimizing Sequence 1
+['23-C', '45-A', '48-C', '51-G', '72-G'] a
+23 46 0
+45 0 0
+48 0 0
+51 0 73
+72 0 52
+GUAGUGAGGGCCUUGACAUAUAAACGCGUGGAUAUGGCACGCGAGUUUCUACCGGGCACCGUAAAUGUCCGACUAUGUCUUGGUAGGUCUCUUGUAGACCGUCGCUUGCUAC
+8_7   7_4
+try to remove  5 point mutations
+[]
+failed
+['23-C']
+Kicking...
+['23-C']
+['23-C'] b
+
+Optimizing Sequence 2
+['21-A', '24-C', '44-G', '45-A', '46-C', '73-A'] a
+21 0 0
+24 0 44
+44 0 24
+45 0 0
+46 23 0
+73 0 0
+GUAGUGAGGGCCUUGACAUAUAACCGCGUGGAUAUGGCACGCGAGUUUCUACCGGGCACCGUAAAUGUCCGACUAUGUCUUGGUAGGUCUCUUGUAGACCGUCGCUUGCUAC
+24 A - C
+7_4   7_4
+remove  5 point mutations
+['24-C']
+found pair!
+['24-C'] b
+
+Optimizing Sequence 3
+['21-C', '45-U', '46-A', '47-G', '48-G', '52-A'] a
+21 0 47
+45 0 23
+46 23 0
+47 22 21
+48 0 0
+52 0 0
+GUAGUGAGGGCCUUGACAUAUAAACGCGUGGAUAUGGCACGCGAUUUUCUACCGGGCACCGUAAAUGUCCGACUAUGUCUUGGUAGGUCUCUUGUAGACCGUCGCUUGCUAC
+45 G - U
+7_4   7_4
+remove  5 point mutations
+['45-U']
+found pair!
+['45-U'] b
+
+Optimizing Sequence 5
+['44-C', '46-A', '47-A', '49-U', '50-C', '73-A'] a
+44 0 26
+46 23 0
+47 22 0
+49 0 0
+50 0 0
+73 0 21
+GUAGUGAGGGCCUUGACAUAUAAACGCGUGGAUAUGGCACGCGAGUUUCCACCGGGCACCGUAAAUGUCCGACUAUGUCUUGGUAGGUCUCUUGUAGACCGUCGCUUGCUAC
+50 U - C
+8_9   7_4
+try to remove  5 point mutations
+['50-C']
+failed
+['50-C', '47-A']
+Kicking...
+['50-C', '47-A']
+['50-C', '47-A'] b
+
+Optimizing Sequence 7
+['21-A', '23-U', '45-A', '46-A', '48-A', '52-A', '72-C'] a
+21 0 0
+23 46 45
+45 0 23
+46 23 0
+48 0 0
+52 0 0
+72 0 0
+GUAGUGAGGGCCUUGACAUAAAAACGCGUGGAUAUGGCACGCGAAUUUCUACCGGGCACCGUAAAUGUCCGACUAUGUCUUGGUAGGUCUCUUGUAGACCGUCGCUUGCUAC
+21 U - A
+45 G - A
+8_7   7_4
+try to remove  5 point mutations
+['21-A', '45-A']
+failed
+['21-A', '45-A', '46-A']
+Kicking...
+Kicking...
+Kicking...
+['46-A']
+found pair!
+['46-A'] b
+
+Optimizing Sequence 8
+['21-A', '23-U', '45-C', '48-C', '49-A', '50-A', '52-A'] a
+21 0 0
+23 46 0
+45 0 0
+48 0 0
+49 0 0
+50 0 0
+52 0 0
+GUAGUGAGGGCCUUGACAUAUAAACGCGUGGAUAUGGCACGCGAGUUCCUACCGGGCACCGUAAAUGUCCGACUAUGUCUUGGUAGGUCUCUUGUAGACCGUCGCUUGCUAC
+48 U - C
+8_7   7_4
+try to remove  6 point mutations
+['48-C']
+failed
+['48-C', '23-U']
+Kicking...
+Kicking...
+['23-U']
+['23-U'] b
+
+Optimizing Sequence 14
+['21-C', '24-U', '48-G', '50-G', '51-U', '52-A', '73-A'] a
+21 0 48
+24 0 44
+48 0 21
+50 0 0
+51 0 0
+52 0 0
+73 0 0
+GUAGUGAGGGCCUUGACAUAUAAUCGCGUGGAUAUGGCACGCGAGUUUCUACCGGGCACCGUAAAUGUCCGACUAUGUCUUGGUAGGUCUCUUGUAGACCGUCGCUUGCUAC
+24 A - U
+7_4   7_4
+remove  6 point mutations
+['24-U']
+found pair!
+['24-U'] b
+
+Optimizing Sequence 20
+['22-G', '46-C', '47-G', '48-A', '49-G', '50-C', '73-A'] a
+22 47 46
+46 23 22
+47 22 0
+48 0 0
+49 0 0
+50 0 0
+73 0 21
+GUAGUGAGGGCCUUGACAUAUAAACGCGUGGAUAUGGCACGCGAGCUUCUACCGGGCACCGUAAAUGUCCGAAUAUGUCUUGGUAGGUCUCUUGUAGACCGUCGCUUGCUAC
+46 U - C
+73 C - A
+7_4   7_4
+remove  5 point mutations
+['46-C', '73-A']
+found pair!
+['46-C', '73-A'] b
+
+Optimizing Sequence 41
+['21-C', '44-C', '45-A', '46-G', '48-A', '49-A', '52-G', '73-G'] a
+21 0 73
+44 0 0
+45 0 50
+46 23 0
+48 0 0
+49 0 0
+52 0 0
+73 0 21
+GUAGUGAGGGCCUUGACAUACAAACGCGUGGAUAUGGCACGCGAAUUUCUACCGGGCACCGUAAAUGUCCGAGUAUGUCUUGGUAGGUCUCUUGUAGACCGUCGCUUGCUAC
+21 U - C
+45 G - A
+73 C - G
+7_4   7_4
+remove  5 point mutations
+['21-C', '45-A', '73-G']
+found pair!
+pairs found in pattern_2
+['21-C', '45-A', '73-G'] b
+
+Optimizing Sequence 133
+['21-A', '44-G', '45-A', '48-A', '49-G', '50-C', '51-G', '52-G', '72-C', '73-U'] a
+21 0 73
+44 0 50
+45 0 0
+48 0 0
+49 0 0
+50 0 44
+51 0 0
+52 0 72
+72 0 52
+73 0 21
+GUAGUGAGGGCCUUGACAUAAAAACGCGUGGAUAUGGCACGCGAAUUUCUACCGGGCACCGUAAAUGUCCGAUUAUGUCUUGGUAGGUCUCUUGUAGACCGUCGCUUGCUAC
+21 U - A
+45 G - A
+73 C - U
+7_4   7_4
+remove  7 point mutations
+['21-A', '45-A', '73-U']
+found pair!
+found pair!
+found pair!
+pairs found in pattern_2
+['21-A', '45-A', '73-U'] b
+
+Optimizing Sequence 153
+['21-C', '44-U', '45-A', '46-C', '48-C', '49-A', '50-G', '52-A', '72-U', '73-U'] a
+21 0 0
+44 0 24
+45 0 0
+46 23 0
+48 0 0
+49 0 0
+50 0 0
+52 0 72
+72 0 52
+73 0 51
+GUAGUGAGGGCCUUGACAUAUAAACGCGUGGAUAUGGCACGCGAAUUUCUAACGGGCACCGUAAAUGUCCGACUAUGUCUUGGUAGGUCUCUUGUAGACCGUCGCUUGCUAC
+45 G - A
+52 C - A
+8_7   7_4
+try to remove  8 point mutations
+['45-A', '52-A']
+failed
+['45-A', '52-A', '48-C']
+Kicking...
+Kicking...
+['45-A', '48-C']
+found pair!
+['45-A', '48-C'] b
+unique patterns: --b
+['23-C'] b
+['24-C'] b
+['45-U'] b
+['47-A', '50-C'] b
+['46-A'] b
+['23-U'] b
+['24-U'] b
+['46-C', '73-A'] b
+['21-C', '45-A', '73-G'] b
+['21-A', '45-A', '73-U'] b
+['45-A', '48-C'] b
