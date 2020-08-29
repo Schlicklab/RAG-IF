@@ -45,5 +45,5 @@ Top107 is the name and rank of the sequence you want to run GA on. This will nee
 This will need to change according to your sequence. This will create a directory Top107.survivors, which are the candidate sequences returned by GA that 
 have the correct topology with both RNAfold and NUPACK. 
 
-11) Run "python path to RAG-IF code/end_seq_order.py Top107.survivors > min_mut.analysis". This will run mutation optimization and give minimal mutations written
-at the bottom of the file min_mut.analysis.
+11) Run "python path to RAG-IF code/end_seq_order.py 7_4 > min_mut.analysis". This will run mutation optimization and give minimal mutations written
+at the bottom of the file min_mut.analysis. 7_4 is the target toplogy that will need to change accordingly.
