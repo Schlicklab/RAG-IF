@@ -20,8 +20,8 @@ and .nupack.bpseq files in the BPSEQ directory.
 This will process the seq files and run RNAfold to determine the secondary structures for all input sequences. This will create .rnafold files and .forna files in the SEQ
 directory.
 
-4) Create files RNAfold_Rank_Topo.txt and Nupack_Rank_Topo.txt that contains the rank of the sequence (Top1.bpseq for example has rank 1) and their topology as predicted 
-by RNAfold (mfe and centroid) and NUPACK. This information can be obtained from the results from the webserver.
+4) Run "perl get_rnafold_ids.pl ExampleRun/SEQ/ ExampleRun/" to create the file RNAfold_Rank_Topo.txt.
+   Run "perl get_nupack_ids.pl ExampleRun/BPSEQ/ ExampleRun/" to create the file Nupack_Rank_Topo.txt.
    
 5) Run "python check_can.py ExampleRun/ 7_4 > ExampleRun/candidate_results.txt". This will look at the two files created in Step 4 and categorize the sequences based 
 on what the NUPACK and RNAfold predicted topologies are. The 7_4 is the target topology, therefore that will need to change depending on what your target is. Currently, 
