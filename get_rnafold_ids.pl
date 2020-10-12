@@ -23,36 +23,44 @@ while($line=<LIST>){ # for every rnafold output file
 	$cols2[0] =~ s/Top//g;
 	$ranks[$count] = $cols2[0];
 
-	#creating ct files from RNAfold output
+	#creating bpseq files from RNAfold output
         open(OUT,"<$line");
         $garbage=<OUT>;
 	$sequen=<OUT>;
 	$sequen =~ s/\n//g;
-        $min_struct=<OUT>; #dot bracket of the minimum energy structure
+	$struct=<OUT>;
+	@cols_s=split(/\s+/,$struct);
+        $min_struct=$cols_s[0]; #dot bracket of the minimum energy structure
         $garbage=<OUT>;
-        $cen_struct=<OUT>; #dot bracket of the centroid energy structure
+	$struct=<OUT>;
+        @cols_s=split(/\s+/,$struct);
+        $cen_struct=$cols_s[0]; #dot bracket of the centroid energy structure
         close(OUT);
-        $min_txtfile=$ARGV[0]."temp_min.txt";
+	$min_seq=$ARGV[0]."temp_min.fa";
+	open(FA,">$min_seq");
+	print FA ">Temp mfe\n";
+	print FA $sequen."\n";
+	close(FA);
+        $min_txtfile=$ARGV[0]."temp_min.dotbracket";
         open(TXT,">$min_txtfile");
-        print TXT $sequen."\n";
         print TXT $min_struct;
         close(TXT);
-        $command="/opt/viennaRNA2.3.5/bin/b2ct < ".$ARGV[0]."temp_min.txt >". $ARGV[0]."temp_min.ct"; #ct file for the minimum energy structure
+        $command="python dotfa2bpseq.py ".$ARGV[0]."temp_min.fa ".$ARGV[0]."temp_min.dotbracket"; #bpseq file for the minimum energy structure
         system($command);
-        $cen_txtfile=$ARGV[0]."temp_cen.txt";
+	$min_seq=$ARGV[0]."temp_cen.fa";
+        open(FA,">$min_seq");
+        print FA ">Temp cen\n";
+        print FA $sequen."\n";
+        close(FA);
+        $cen_txtfile=$ARGV[0]."temp_cen.dotbracket";
         open(TXT,">$cen_txtfile");
-        print TXT $sequen."\n";
-        $cen_struct =~ s/\s+//g;
-        @cols2=split(/{/,$cen_struct);
-        print TXT $cols2[0];
-        @cols4=split(/d/,$cols2[1]);
-        print TXT " (".$cols4[0].")\n";
-        close(TXT);
-        $command="/opt/viennaRNA2.3.5/bin/b2ct < ".$ARGV[0]."temp_cen.txt > ".$ARGV[0]."temp_cen.ct"; #ct file for the centroid energy structure
+        print TXT $cen_struct;
+	close(TXT);
+        $command="python dotfa2bpseq.py ".$ARGV[0]."temp_cen.fa ".$ARGV[0]."temp_cen.dotbracket"; #bpseq file for the minimum energy structure
         system($command);
 	
 	#runnning treeGraphs to get the RAG IDs
-	$command="python2.7 modified-treeGraph/treeGraphs.py ".$ARGV[0]."temp_min.ct";
+	$command="python2.7 modified-treeGraph/treeGraphs.py ".$ARGV[0]."temp_min.bpseq";
         $output_text=`$command`;
         @outlines=split(/\n/,$output_text);
         $topo_min="";
@@ -67,7 +75,7 @@ while($line=<LIST>){ # for every rnafold output file
                         last;
                 }
 	}
-	$command="python2.7 modified-treeGraph/treeGraphs.py ".$ARGV[0]."temp_cen.ct";
+	$command="python2.7 modified-treeGraph/treeGraphs.py ".$ARGV[0]."temp_cen.bpseq";
         $output_text=`$command`;
         @outlines=split(/\n/,$output_text);
         $topo_cen="";
@@ -82,6 +90,10 @@ while($line=<LIST>){ # for every rnafold output file
                         last;
                 }
         }	
+	$command="rm -f ".$ARGV[0]."temp_min*";
+	system($command);
+	$command="rm -f ".$ARGV[0]."temp_cen*";
+	system($command);
 }
 close(LIST);
 
